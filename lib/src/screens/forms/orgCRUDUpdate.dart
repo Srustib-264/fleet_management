@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/orgCRUDModel.dart';
-import '../../services/CRUDServices/orgCRUDAPIService.dart';
+import '../../services/CRUDServices/orgCRUDApiService.dart';
 
 class OrgCRUDUpdate extends StatefulWidget {
   final OrgData organization;

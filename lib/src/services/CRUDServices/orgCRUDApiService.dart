@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/orgCRUDModel.dart';
-import '../apiURL.dart';
+import '../apiUrl.dart';
 
 class OrgApiService {
   Future<OrgCRUDModel> getOrganizations() async {

@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/usersCRUDModel.dart';
-import '../apiURL.dart';
+import '../apiUrl.dart';
 
 class UserApiService {
   Future<UserCRUDModel> getUsers() async {
