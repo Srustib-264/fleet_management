@@ -23,7 +23,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Flutter Web
-        run: flutter build web --release --base-href "/fleet_management+/"
+        run: flutter build web --release --base-href "/fleet_management/"
 
       - name: Move build/web/assets/assets/* to build/web/assets/ and clean up
         run: |
