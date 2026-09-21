@@ -8,13 +8,39 @@ import '../../models/usersCRUDModel.dart';
 import '../apiUrl.dart';
 
 class UserApiService {
-  Future<UserCRUDModel> getUsers() async {
+  Future<UserCRUDModel> getUsers({
+    String? userRole,
+    String? searchText,
+    int page = 1,
+    int sizePerPage = 10,
+    int currentIndex = 0,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('accessToken');
 
     try {
+      final baseUri = Uri.parse(BaseURLConfig.userCRUDApiService);
+
+      final queryParameters = <String, String>{
+        'page': page.toString(),
+        'sizePerPage': sizePerPage.toString(),
+        'currentIndex': currentIndex.toString(),
+      };
+
+      // Search
+      if (searchText != null && searchText.trim().isNotEmpty) {
+        queryParameters['searchText'] = searchText.trim();
+      }
+
+      // Role filter
+      if (userRole != null && userRole.trim().isNotEmpty) {
+        queryParameters['user_role'] = userRole.trim();
+      }
+
+      final uri = baseUri.replace(queryParameters: queryParameters);
+
       final response = await http.get(
-        Uri.parse(BaseURLConfig.userCRUDApiService),
+        uri,
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -34,10 +60,6 @@ class UserApiService {
       throw Exception('Error fetching users: $e');
     }
   }
-
-  // ============================================================
-  // DELETE USER
-  // ============================================================
 
   Future<void> deleteUser(String userId) async {
     final prefs = await SharedPreferences.getInstance();

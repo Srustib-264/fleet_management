@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:file_picker/file_picker.dart';
@@ -9,6 +10,7 @@ import '../../models/usersCRUDModel.dart';
 import '../../services/CRUDServices/orgCRUDApiService.dart';
 import '../../services/CRUDServices/usersCRUDApiService.dart';
 import '../../services/apiUrl.dart';
+import 'package:dropdown_button2/dropdown_button2.dart';
 import '../forms/userCRUDUpdate.dart';
 
 class UserCRUDScreen extends StatefulWidget {
@@ -21,27 +23,35 @@ class UserCRUDScreen extends StatefulWidget {
 class _UserCRUDScreenState extends State<UserCRUDScreen> {
   final UserApiService _userApiService = UserApiService();
   UserCRUDModel? userData;
+  final TextEditingController _searchController = TextEditingController();
+
+  Timer? _searchDebounce;
   List<OrgData> organizations = [];
   bool isLoading = true;
   String? errorMessage;
   List<Data> visibleUsers = [];
-  String? selectedRoleId;
+  // String? selectedRoleId;
+  int currentPage = 1;
+  int rowsPerPage = 10;
+  int totalPages = 1;
+  int totalCount = 0;
 
+  String? selectedRoleId;
+  String? selectedFilterRoleId;
+
+  final Map<String, String> roleNames = {
+    '2': 'Super Admin',
+    '4': 'Admin',
+    '3': 'Manager',
+    '5': 'Fleet Manager',
+    '6': 'Route Manager',
+    '7': 'Driver',
+    '9': 'Viewer',
+  };
   String _getRoleName(dynamic roleId) {
     if (roleId == null) {
       return '-';
     }
-
-    const Map<String, String> roleNames = {
-      '2': 'Super Admin',
-      '4': 'Admin',
-      '3': 'Manager',
-      '5': 'Fleet Manager',
-      '6': 'Route Manager',
-      '7': 'Driver',
-      '9': 'Viewer',
-    };
-
     return roleNames[roleId.toString()] ?? 'Unknown Role';
   }
 
@@ -140,21 +150,24 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
     } catch (e) {}
   }
 
-  Future<void> _loadUsers() async {
-    if (mounted) {
+  Future<void> _loadUsers({String? roleId, String? searchText}) async {
+    try {
+      if (!mounted) return;
+
       setState(() {
         isLoading = true;
         errorMessage = null;
       });
-    }
 
-    try {
-      final result = await _userApiService.getUsers();
-
-      if (!mounted) return;
+      final result = await _userApiService.getUsers(
+        userRole: roleId,
+        searchText: searchText,
+        page: currentPage,
+        sizePerPage: rowsPerPage,
+        currentIndex: (currentPage - 1) * rowsPerPage,
+      );
 
       final List<Data> allUsers = result.data ?? [];
-      for (final user in allUsers) {}
 
       final List<Data> filteredUsers;
 
@@ -163,22 +176,28 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
       } else {
         filteredUsers = allUsers.where((user) {
           final roleId = user.userRole?.toString().trim();
-
           return roleId != '2';
         }).toList();
       }
 
+      if (!mounted) return;
+
       setState(() {
         userData = result;
         visibleUsers = filteredUsers;
+
+        totalCount = result.pagination?.totalRecords ?? 0;
+
+        totalPages = result.pagination?.totalPages ?? 1;
+
         isLoading = false;
       });
     } catch (e) {
       if (!mounted) return;
 
       setState(() {
-        errorMessage = e.toString();
         isLoading = false;
+        errorMessage = e.toString();
       });
     }
   }
@@ -188,7 +207,6 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
     List<OrgData> organizations = [];
 
     if (isAdmin) {
-      // Admin organization comes ONLY from SharedPreferences
       if (adminOrganizationId != null &&
           adminOrganizationId!.trim().isNotEmpty) {
         organizations = [
@@ -199,13 +217,10 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
         ];
       }
     } else {
-      // Other users load organizations from API
       try {
         final result = await orgApiService.getOrganizations();
         organizations = result.data ?? [];
       } catch (e) {
-        debugPrint('Error loading organizations: $e');
-
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Failed to load organizations: $e')),
@@ -214,8 +229,6 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
       }
     }
     final employeeCodeController = TextEditingController();
-    // final firstNameController = TextEditingController();
-    // final lastNameController = TextEditingController();
     final fullNameController = TextEditingController();
     final emailController = TextEditingController();
     final mobileController = TextEditingController();
@@ -815,18 +828,15 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
                             const SizedBox(height: 10),
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
-
                               children: [
                                 if (!isAdmin) ...[
                                   Expanded(
-                                    child: DropdownButtonFormField<OrgData>(
+                                    child: DropdownButtonFormField2<OrgData>(
                                       value: selectedOrganization,
-
-                                      dropdownColor: const Color(0xff202b39),
+                                      isExpanded: true,
 
                                       decoration: InputDecoration(
                                         labelText: 'Organization',
-
                                         labelStyle: const TextStyle(
                                           color: Color(0xff8994a2),
                                           fontSize: 12,
@@ -839,7 +849,6 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
                                         ),
 
                                         filled: true,
-
                                         fillColor: const Color(0xff141d28),
 
                                         contentPadding:
@@ -884,6 +893,61 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
                                         ),
                                       ),
 
+                                      dropdownStyleData: DropdownStyleData(
+                                        maxHeight: 150,
+                                        width: 320,
+
+                                        // IMPORTANT
+                                        isOverButton: true,
+
+                                        offset: const Offset(0, -50),
+
+                                        padding: EdgeInsets.zero,
+
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xff202b39),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.white.withOpacity(
+                                              0.08,
+                                            ),
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(
+                                                0.25,
+                                              ),
+                                              blurRadius: 12,
+                                              offset: const Offset(0, 5),
+                                            ),
+                                          ],
+                                        ),
+
+                                        scrollbarTheme: ScrollbarThemeData(
+                                          radius: const Radius.circular(10),
+                                          thickness: WidgetStateProperty.all(5),
+                                          thumbVisibility:
+                                              WidgetStateProperty.all(true),
+                                        ),
+                                      ),
+                                      menuItemStyleData:
+                                          const MenuItemStyleData(
+                                            height: 42,
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                            ),
+                                          ),
+
+                                      iconStyleData: const IconStyleData(
+                                        icon: Icon(
+                                          Icons.keyboard_arrow_down,
+                                          size: 18,
+                                          color: Color(0xff8994a2),
+                                        ),
+                                      ),
+
                                       items: organizations
                                           .map<DropdownMenuItem<OrgData>>((
                                             OrgData org,
@@ -893,6 +957,8 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
                                               child: Text(
                                                 org.orgName ??
                                                     'Unnamed Organization',
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
                                                 style: const TextStyle(
                                                   color: Colors.white,
                                                   fontSize: 12,
@@ -915,14 +981,12 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
                                   const SizedBox(width: 16),
 
                                   Expanded(
-                                    child: DropdownButtonFormField<String>(
+                                    child: DropdownButtonFormField2<String>(
                                       value: selectedRoleId,
-
-                                      dropdownColor: const Color(0xff202b39),
+                                      isExpanded: true,
 
                                       decoration: InputDecoration(
                                         labelText: 'User Role',
-
                                         labelStyle: const TextStyle(
                                           color: Color(0xff8994a2),
                                           fontSize: 12,
@@ -935,7 +999,6 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
                                         ),
 
                                         filled: true,
-
                                         fillColor: const Color(0xff141d28),
 
                                         contentPadding:
@@ -980,8 +1043,63 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
                                         ),
                                       ),
 
+                                      dropdownStyleData: DropdownStyleData(
+                                        maxHeight: 150,
+                                        width: 320,
+
+                                        // IMPORTANT
+                                        isOverButton: true,
+
+                                        offset: const Offset(0, -50),
+
+                                        padding: EdgeInsets.zero,
+
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xff202b39),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.white.withOpacity(
+                                              0.08,
+                                            ),
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(
+                                                0.25,
+                                              ),
+                                              blurRadius: 12,
+                                              offset: const Offset(0, 5),
+                                            ),
+                                          ],
+                                        ),
+
+                                        scrollbarTheme: ScrollbarThemeData(
+                                          radius: const Radius.circular(10),
+                                          thickness: WidgetStateProperty.all(5),
+                                          thumbVisibility:
+                                              WidgetStateProperty.all(true),
+                                        ),
+                                      ),
+
+                                      menuItemStyleData:
+                                          const MenuItemStyleData(
+                                            height: 42,
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                            ),
+                                          ),
+
+                                      iconStyleData: const IconStyleData(
+                                        icon: Icon(
+                                          Icons.keyboard_arrow_down,
+                                          size: 18,
+                                          color: Color(0xff8994a2),
+                                        ),
+                                      ),
+
                                       items: [
-                                        // ONLY SUPER ADMIN CAN SEE SUPER ADMIN
                                         if (isSuperAdmin)
                                           const DropdownMenuItem<String>(
                                             value: '2',
@@ -1060,6 +1178,7 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
                                           ),
                                         ),
                                       ],
+
                                       onChanged: isCreating
                                           ? null
                                           : (value) {
@@ -1072,21 +1191,21 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
                                 ],
                               ],
                             ),
+
                             const SizedBox(height: 10),
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
 
                               children: [
-                                Expanded(
-                                  child: _buildField(
-                                    label: 'Status',
-                                    controller: statusController,
-                                    icon: Icons.toggle_on_outlined,
-                                  ),
-                                ),
+                                // Expanded(
+                                //   child: _buildField(
+                                //     label: 'Status',
+                                //     controller: statusController,
+                                //     icon: Icons.toggle_on_outlined,
+                                //   ),
+                                // ),
 
-                                const SizedBox(width: 16),
-
+                                // const SizedBox(width: 16),
                                 Expanded(
                                   child: Container(
                                     height: 52,
@@ -1277,57 +1396,6 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
     statusController.dispose();
   }
 
-  Widget _buildSectionTitle({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 34,
-          height: 34,
-
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(8),
-          ),
-
-          child: Icon(icon, size: 17, color: const Color(0xff8994a2)),
-        ),
-
-        const SizedBox(width: 11),
-
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-
-            children: [
-              Text(
-                title,
-
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-
-              const SizedBox(height: 3),
-
-              Text(
-                subtitle,
-
-                style: const TextStyle(color: Color(0xff8994a2), fontSize: 11),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildField({
     required String label,
     required TextEditingController controller,
@@ -1418,12 +1486,14 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
 
       children: [
         Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Expanded(
+            // LEFT SIDE
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'Users',
                     style: TextStyle(
                       color: Colors.white,
@@ -1432,59 +1502,392 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
                     ),
                   ),
 
-                  SizedBox(height: 5),
+                  const SizedBox(height: 5),
 
-                  Text(
+                  const Text(
                     'Manage users and their access',
                     style: TextStyle(color: Color(0xff8994a2), fontSize: 10),
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // SEARCH + FILTER ROW
+                  Row(
+                    children: [
+                      // SEARCH BAR
+                      SizedBox(
+                        width: 260,
+                        height: 36,
+                        child: TextField(
+                          controller: _searchController,
+
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                          ),
+
+                          onChanged: (value) {
+                            // Cancel previous timer
+                            _searchDebounce?.cancel();
+
+                            // Wait 500ms before calling API
+                            _searchDebounce = Timer(
+                              const Duration(milliseconds: 500),
+                              () {
+                                final searchText = value.trim();
+
+                                _loadUsers(
+                                  roleId: selectedFilterRoleId,
+                                  searchText: searchText.isEmpty
+                                      ? null
+                                      : searchText,
+                                );
+                              },
+                            );
+                          },
+
+                          decoration: InputDecoration(
+                            hintText: 'Search users...',
+
+                            hintStyle: const TextStyle(
+                              color: Color(0xff596575),
+                              fontSize: 11,
+                            ),
+
+                            prefixIcon: const Icon(
+                              Icons.search,
+                              size: 17,
+                              color: Color(0xff8994a2),
+                            ),
+
+                            filled: true,
+                            fillColor: const Color(0xff202b39),
+
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(7),
+                              borderSide: BorderSide.none,
+                            ),
+
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(7),
+                              borderSide: BorderSide(
+                                color: Colors.white.withOpacity(0.06),
+                              ),
+                            ),
+
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(7),
+                              borderSide: const BorderSide(
+                                color: Color(0xff078df5),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+
+                      // SELECT BY ROLE
+                      Container(
+                        width: 170,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: const Color(0xff202b39),
+                          borderRadius: BorderRadius.circular(7),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.06),
+                          ),
+                        ),
+                        child: DropdownButton2<String?>(
+                          value: selectedFilterRoleId,
+                          isExpanded: true,
+
+                          // Main button
+                          buttonStyleData: ButtonStyleData(
+                            width: 170,
+                            height: 36,
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xff202b39),
+                              borderRadius: BorderRadius.circular(7),
+                            ),
+                          ),
+
+                          hint: const Row(
+                            children: [
+                              Icon(
+                                Icons.admin_panel_settings_outlined,
+                                size: 16,
+                                color: Color(0xff8994a2),
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Select by Role',
+                                style: TextStyle(
+                                  color: Color(0xff8994a2),
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          iconStyleData: const IconStyleData(
+                            icon: Icon(
+                              Icons.keyboard_arrow_down,
+                              size: 18,
+                              color: Color(0xff8994a2),
+                            ),
+                          ),
+
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                          ),
+
+                          underline: const SizedBox(),
+
+                          dropdownStyleData: DropdownStyleData(
+                            width: 170,
+
+                            offset: const Offset(0, -3),
+
+                            // Fixed dropdown height
+                            maxHeight: 250,
+
+                            padding: EdgeInsets.zero,
+
+                            decoration: BoxDecoration(
+                              color: const Color(0xff202b39),
+                              borderRadius: BorderRadius.circular(7),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.06),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.25),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 5),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // MENU ITEMS
+                          menuItemStyleData: const MenuItemStyleData(
+                            height: 42,
+                            padding: EdgeInsets.symmetric(horizontal: 14),
+                          ),
+
+                          items: [
+                            const DropdownMenuItem<String?>(
+                              value: null,
+                              child: Text(
+                                'All ',
+                                style: TextStyle(
+                                  color: Color(0xff8994a2),
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+
+                            ...roleNames.entries
+                                .where(
+                                  (entry) => isSuperAdmin || entry.key != '2',
+                                )
+                                .map(
+                                  (entry) => DropdownMenuItem<String?>(
+                                    value: entry.key,
+                                    child: Text(
+                                      entry.value,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                          ],
+
+                          onChanged: (value) async {
+                            setState(() {
+                              selectedFilterRoleId = value;
+                              currentPage = 1;
+                            });
+
+                            await _loadUsers(
+                              roleId: value,
+                              searchText: _searchController.text.trim().isEmpty
+                                  ? null
+                                  : _searchController.text.trim(),
+                            );
+                          },
+                        ),
+                      ),
+
+                      const SizedBox(width: 10),
+
+                      // SORT ICON
+                      Container(
+                        width: 36,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: const Color(0xff202b39),
+                          borderRadius: BorderRadius.circular(7),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.06),
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.sort,
+                          size: 18,
+                          color: Color(0xff8994a2),
+                        ),
+                      ),
+                      const Spacer(),
+
+                      Container(
+                        width: 70,
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: const Color(0xff202b39),
+                          borderRadius: BorderRadius.circular(7),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.06),
+                          ),
+                        ),
+                        child: DropdownButton2<int>(
+                          value: 10,
+                          isExpanded: true,
+
+                          buttonStyleData: ButtonStyleData(
+                            width: 70,
+                            height: 36,
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xff202b39),
+                              borderRadius: BorderRadius.circular(7),
+                            ),
+                          ),
+
+                          iconStyleData: const IconStyleData(
+                            icon: Icon(
+                              Icons.keyboard_arrow_down,
+                              size: 17,
+                              color: Color(0xff8994a2),
+                            ),
+                          ),
+
+                          style: const TextStyle(
+                            color: Color(0xff8994a2),
+                            fontSize: 11,
+                          ),
+
+                          underline: const SizedBox(),
+
+                          // POPUP
+                          dropdownStyleData: DropdownStyleData(
+                            width: 70,
+
+                            offset: const Offset(0, -3),
+
+                            // Fixed popup height
+                            maxHeight: 180,
+
+                            padding: EdgeInsets.zero,
+
+                            decoration: BoxDecoration(
+                              color: const Color(0xff202b39),
+                              borderRadius: BorderRadius.circular(7),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.06),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.25),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 5),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          menuItemStyleData: const MenuItemStyleData(
+                            height: 40,
+                            padding: EdgeInsets.symmetric(horizontal: 12),
+                          ),
+
+                          items: const [
+                            DropdownMenuItem<int>(value: 10, child: Text('10')),
+                            DropdownMenuItem<int>(value: 25, child: Text('25')),
+                            DropdownMenuItem<int>(value: 50, child: Text('50')),
+                            DropdownMenuItem<int>(
+                              value: 100,
+                              child: Text('100'),
+                            ),
+                          ],
+
+                          onChanged: (value) async {
+                            if (value == null) return;
+
+                            setState(() {
+                              rowsPerPage = value;
+                              currentPage = 1;
+                            });
+
+                            await _loadUsers(
+                              roleId: selectedFilterRoleId,
+                              searchText: _searchController.text.trim().isEmpty
+                                  ? null
+                                  : _searchController.text.trim(),
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+
+                      SizedBox(
+                        height: 36,
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            _showAddUserDialog();
+                          },
+                          icon: const Icon(Icons.add, size: 16),
+                          label: const Text(
+                            'Add User',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xff078df5),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 15),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-
-            const SizedBox(width: 10),
-
-            SizedBox(
-              height: 36,
-
-              child: ElevatedButton.icon(
-                onPressed: () async {
-                  _showAddUserDialog();
-                },
-
-                icon: const Icon(Icons.add, size: 16),
-
-                label: const Text(
-                  'Add User',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-                ),
-
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xff078df5),
-
-                  foregroundColor: Colors.white,
-
-                  elevation: 0,
-
-                  padding: const EdgeInsets.symmetric(horizontal: 15),
-
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
-
-        // Container(
-        //   height: 1,
-        //   width: double.infinity,
-        //   color: Colors.white.withOpacity(0.06),
-        // ),
         const SizedBox(height: 20),
 
         Expanded(child: _buildBody()),
+        const SizedBox(height: 10),
+
+        _buildPaginationControls(),
+
+        const SizedBox(height: 10),
       ],
     );
   }
@@ -1524,8 +1927,6 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
       );
     }
 
-    // IMPORTANT:
-    // Use filtered visibleUsers instead of userData.data
     final data = visibleUsers;
 
     if (data.isEmpty) {
@@ -1813,16 +2214,6 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
 
                                 children: [
                                   _buildActionButton(
-                                    icon: Icons.delete_outline,
-                                    tooltip: 'Delete',
-
-                                    onPressed: () {
-                                      _showDeleteDialog(user);
-                                    },
-                                  ),
-
-                                  const SizedBox(width: 20),
-                                  _buildActionButton(
                                     icon: Icons.edit_outlined,
                                     tooltip: 'Edit',
 
@@ -1840,6 +2231,16 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
                                       if (result == true) {
                                         await _loadUsers();
                                       }
+                                    },
+                                  ),
+                                  const SizedBox(width: 20),
+
+                                  _buildActionButton(
+                                    icon: Icons.delete_outline,
+                                    tooltip: 'Delete',
+
+                                    onPressed: () {
+                                      _showDeleteDialog(user);
                                     },
                                   ),
                                 ],
@@ -1942,6 +2343,226 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
             style: TextStyle(color: Color(0xff697482), fontSize: 10),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPaginationControls() {
+    const int visiblePages = 5;
+
+    int startPage = ((currentPage - 1) ~/ visiblePages) * visiblePages + 1;
+
+    int endPage = startPage + visiblePages - 1;
+
+    if (endPage > totalPages) {
+      endPage = totalPages;
+    }
+
+    return Container(
+      height: 58,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+
+      child: Row(
+        children: [
+          // ========================================
+          // LEFT ARROW
+          // ========================================
+          _buildPaginationArrow(
+            icon: Icons.chevron_left_rounded,
+            enabled: currentPage > 1,
+            onTap: () {
+              setState(() {
+                currentPage--;
+              });
+
+              _loadUsers(
+                roleId: selectedFilterRoleId,
+                searchText: _searchController.text.trim().isEmpty
+                    ? null
+                    : _searchController.text.trim(),
+              );
+            },
+          ),
+
+          const SizedBox(width: 6),
+
+          // ========================================
+          // PAGE NUMBERS
+          // ========================================
+          Row(
+            children: List.generate(endPage - startPage + 1, (index) {
+              final page = startPage + index;
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                child: _buildPageButton(
+                  page: page,
+                  isSelected: page == currentPage,
+                ),
+              );
+            }),
+          ),
+
+          const SizedBox(width: 6),
+
+          // ========================================
+          // RIGHT ARROW
+          // ========================================
+          _buildPaginationArrow(
+            icon: Icons.chevron_right_rounded,
+            enabled: currentPage < totalPages,
+            onTap: () {
+              setState(() {
+                currentPage++;
+              });
+
+              _loadUsers(
+                roleId: selectedFilterRoleId,
+                searchText: _searchController.text.trim().isEmpty
+                    ? null
+                    : _searchController.text.trim(),
+              );
+            },
+          ),
+
+          const Spacer(),
+
+          // ========================================
+          // GO TO PAGE
+          // ========================================
+          SizedBox(
+            width: 88,
+            height: 36,
+            child: TextField(
+              keyboardType: TextInputType.number,
+              style: const TextStyle(color: Colors.white, fontSize: 11),
+              decoration: InputDecoration(
+                hintText: 'Page',
+                hintStyle: const TextStyle(
+                  color: Color(0xff697482),
+                  fontSize: 11,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 11,
+                  vertical: 8,
+                ),
+                filled: true,
+                fillColor: const Color(0xff202b39),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(7),
+                  borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(7),
+                  borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(7)),
+                  borderSide: BorderSide(color: Color(0xff078df5)),
+                ),
+              ),
+              onSubmitted: (value) {
+                final page = int.tryParse(value);
+
+                if (page == null) {
+                  return;
+                }
+
+                if (page < 1 || page > totalPages) {
+                  _showError('Please enter a page between 1 and $totalPages');
+                  return;
+                }
+
+                setState(() {
+                  currentPage = page;
+                });
+
+                _loadUsers(
+                  roleId: selectedFilterRoleId,
+                  searchText: _searchController.text.trim().isEmpty
+                      ? null
+                      : _searchController.text.trim(),
+                );
+              },
+            ),
+          ),
+
+          const SizedBox(width: 14),
+
+          // ========================================
+          // PAGE INFORMATION
+          // ========================================
+          Text(
+            'Page $currentPage of $totalPages · $totalCount items',
+            style: const TextStyle(
+              color: Color(0xff8994a2),
+              fontSize: 11,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPageButton({required int page, required bool isSelected}) {
+    return InkWell(
+      onTap: isSelected
+          ? null
+          : () async {
+              setState(() {
+                currentPage = page;
+              });
+
+              await _loadUsers(
+                roleId: selectedFilterRoleId,
+                searchText: _searchController.text.trim().isEmpty
+                    ? null
+                    : _searchController.text.trim(),
+              );
+            },
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        width: 36,
+        height: 36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xff078df5) : const Color(0xff202b39),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xff078df5)
+                : Colors.white.withOpacity(0.06),
+          ),
+        ),
+        child: Text(
+          '$page',
+          style: TextStyle(
+            color: isSelected ? Colors.white : const Color(0xff8994a2),
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaginationArrow({
+    required IconData icon,
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: enabled ? onTap : null,
+      borderRadius: BorderRadius.circular(6),
+      child: SizedBox(
+        width: 32,
+        height: 38,
+        child: Icon(
+          icon,
+          size: 23,
+          color: enabled ? Colors.white : Colors.white.withOpacity(0.20),
+        ),
       ),
     );
   }

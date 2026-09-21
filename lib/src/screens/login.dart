@@ -68,10 +68,6 @@ class _LoginScreenState extends State<LoginScreen> {
         // LOGIN FAILURE
         // --------------------------------------------------------
         if (state is LoginFailure) {
-          debugPrint('Login failed');
-          debugPrint('Error: ${state.error}');
-          debugPrint('Status code: ${state.statusCode}');
-
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text(state.error)));

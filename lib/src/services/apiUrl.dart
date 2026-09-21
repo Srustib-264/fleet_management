@@ -1,5 +1,5 @@
 class BaseURLConfig {
-  static const String baseURL = "http://192.168.1.53:5000";
+  static const String baseURL = "http://192.168.1.11:5000";
 
   // login
   static const String loginApiURL = '$baseURL/api/v1/users/login';

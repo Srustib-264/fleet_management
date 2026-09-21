@@ -44,16 +44,7 @@ class _RoleCRUDScreenState extends State<RoleCRUDScreen> {
         isLoading = false;
       });
 
-      debugPrint('================ ROLE API DEBUG ================');
-      debugPrint('ROLE COUNT: ${roles.length}');
-
-      for (final role in roles) {
-        debugPrint(
-          'ROLE: ${role.roleName} | '
-          'CODE: ${role.roleCode} | '
-          'ID: ${role.id}',
-        );
-      }
+      for (final role in roles) {}
     } catch (e) {
       if (!mounted) return;
 

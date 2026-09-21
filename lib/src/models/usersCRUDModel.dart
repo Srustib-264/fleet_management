@@ -2,19 +2,26 @@ class UserCRUDModel {
   bool? success;
   String? message;
   List<Data>? data;
+  Pagination? pagination;
 
-  UserCRUDModel({this.success, this.message, this.data});
+  UserCRUDModel({this.success, this.message, this.data, this.pagination});
 
   UserCRUDModel.fromJson(Map<String, dynamic> json) {
     success = json['success'];
     message = json['message'];
 
+    // Users data
     if (json['data'] != null) {
       data = <Data>[];
 
       for (var item in json['data']) {
         data!.add(Data.fromJson(item));
       }
+    }
+
+    // Pagination data
+    if (json['pagination'] != null) {
+      pagination = Pagination.fromJson(json['pagination']);
     }
   }
 
@@ -24,13 +31,63 @@ class UserCRUDModel {
     data['success'] = success;
     data['message'] = message;
 
+    // Users data
     if (this.data != null) {
       data['data'] = this.data!.map((item) => item.toJson()).toList();
+    }
+
+    // Pagination data
+    if (pagination != null) {
+      data['pagination'] = pagination!.toJson();
     }
 
     return data;
   }
 }
+
+// ============================================================
+// PAGINATION MODEL
+// ============================================================
+
+class Pagination {
+  int? page;
+  int? sizePerPage;
+  int? currentIndex;
+  int? totalRecords;
+  int? totalPages;
+
+  Pagination({
+    this.page,
+    this.sizePerPage,
+    this.currentIndex,
+    this.totalRecords,
+    this.totalPages,
+  });
+
+  Pagination.fromJson(Map<String, dynamic> json) {
+    page = json['page'];
+    sizePerPage = json['sizePerPage'];
+    currentIndex = json['currentIndex'];
+    totalRecords = json['totalRecords'];
+    totalPages = json['totalPages'];
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = {};
+
+    data['page'] = page;
+    data['sizePerPage'] = sizePerPage;
+    data['currentIndex'] = currentIndex;
+    data['totalRecords'] = totalRecords;
+    data['totalPages'] = totalPages;
+
+    return data;
+  }
+}
+
+// ============================================================
+// USER DATA MODEL
+// ============================================================
 
 class Data {
   String? id;

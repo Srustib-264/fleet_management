@@ -51,8 +51,6 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
         organizationData = result;
         isOrganizationsLoading = false;
       });
-
-      debugPrint('ORGANIZATIONS LOADED: ${result.data?.length ?? 0}');
     } catch (e) {
       if (!mounted) return;
 
@@ -60,8 +58,6 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
         isOrganizationsLoading = false;
         organizationError = e.toString();
       });
-
-      debugPrint('ORGANIZATION API ERROR: $e');
     }
   }
 
@@ -728,8 +724,6 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
                 'organization_id': selectedOrganizationId,
               };
 
-              debugPrint('CREATE GROUP PAYLOAD: $createData');
-
               try {
                 await _groupApiService.createGroup(createData);
 
@@ -851,8 +845,6 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
                 'description': descriptionController.text.trim(),
                 'organization_id': selectedOrganizationId,
               };
-
-              debugPrint('UPDATE GROUP PAYLOAD: $updateData');
 
               try {
                 await _groupApiService.updateGroup(group.id!, updateData);

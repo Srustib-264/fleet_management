@@ -138,8 +138,6 @@ class _RoleCRUDUpdateState extends State<RoleCRUDUpdate> {
         isUpdating = false;
       });
 
-      debugPrint('UPDATE ROLE ERROR: $e');
-
       _showError(e.toString().replaceFirst('Exception: ', ''));
     }
   }

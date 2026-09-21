@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -97,7 +98,7 @@ class _UserUpdateCrudTableState extends State<UserUpdateCrudTable> {
       text: widget.user.status ?? 'active',
     );
 
-    isActive = widget.user.isActive ?? true;
+    isActive = widget.user.isActive ?? false;
   }
 
   String _getRoleName(dynamic roleId) {
@@ -276,18 +277,16 @@ class _UserUpdateCrudTableState extends State<UserUpdateCrudTable> {
     setState(() {
       isUpdating = true;
     });
-final String fullName = fullNameController.text.trim();
+    final String fullName = fullNameController.text.trim();
 
-final List<String> nameParts = fullName
-    .split(RegExp(r'\s+'))
-    .where((part) => part.isNotEmpty)
-    .toList();
+    final List<String> nameParts = fullName
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
 
-final String firstName =
-    nameParts.isNotEmpty ? nameParts.first : '';
+    final String firstName = nameParts.isNotEmpty ? nameParts.first : '';
 
-final String lastName =
-    nameParts.length > 1
+    final String lastName = nameParts.length > 1
         ? nameParts.sublist(1).join(' ')
         : '';
     final Map<String, dynamic> updateData = {
@@ -296,7 +295,6 @@ final String lastName =
       'first_name': firstNameController.text.trim(),
       'last_name': lastNameController.text.trim(),
       'full_name': fullNameController.text.trim(),
-      
 
       'email': emailController.text.trim(),
 
@@ -611,111 +609,108 @@ final String lastName =
                       keyboardType: TextInputType.emailAddress,
                     ),
 
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
+                    // Padding(
+                    //   padding: const EdgeInsets.only(bottom: 12),
 
-                      child: TextField(
-                        controller: passwordController,
+                    //   child: TextField(
+                    //     controller: passwordController,
 
-                        obscureText: obscurePassword,
+                    //     obscureText: obscurePassword,
 
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12.5,
-                        ),
+                    //     style: const TextStyle(
+                    //       color: Colors.white,
+                    //       fontSize: 12.5,
+                    //     ),
 
-                        cursorColor: primaryColor,
+                    //     cursorColor: primaryColor,
 
-                        decoration: InputDecoration(
-                          labelText: 'Password',
+                    //     decoration: InputDecoration(
+                    //       labelText: 'Password',
 
-                          hintText: 'Leave blank to keep current password',
+                    //       hintText: 'Leave blank to keep current password',
 
-                          hintStyle: const TextStyle(
-                            color: Color(0xff596575),
-                            fontSize: 10.5,
-                          ),
+                    //       hintStyle: const TextStyle(
+                    //         color: Color(0xff596575),
+                    //         fontSize: 10.5,
+                    //       ),
 
-                          labelStyle: const TextStyle(
-                            color: secondaryTextColor,
-                            fontSize: 12,
-                          ),
+                    //       labelStyle: const TextStyle(
+                    //         color: secondaryTextColor,
+                    //         fontSize: 12,
+                    //       ),
 
-                          floatingLabelStyle: const TextStyle(
-                            color: primaryColor,
-                            fontSize: 12,
-                          ),
+                    //       floatingLabelStyle: const TextStyle(
+                    //         color: primaryColor,
+                    //         fontSize: 12,
+                    //       ),
 
-                          prefixIcon: const Icon(
-                            Icons.lock_outline,
-                            size: 17,
-                            color: secondaryTextColor,
-                          ),
+                    //       prefixIcon: const Icon(
+                    //         Icons.lock_outline,
+                    //         size: 17,
+                    //         color: secondaryTextColor,
+                    //       ),
 
-                          suffixIcon: IconButton(
-                            onPressed: isUpdating
-                                ? null
-                                : () {
-                                    setState(() {
-                                      obscurePassword = !obscurePassword;
-                                    });
-                                  },
+                    //       suffixIcon: IconButton(
+                    //         onPressed: isUpdating
+                    //             ? null
+                    //             : () {
+                    //                 setState(() {
+                    //                   obscurePassword = !obscurePassword;
+                    //                 });
+                    //               },
 
-                            icon: Icon(
-                              obscurePassword
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
+                    //         icon: Icon(
+                    //           obscurePassword
+                    //               ? Icons.visibility_outlined
+                    //               : Icons.visibility_off_outlined,
 
-                              size: 18,
+                    //           size: 18,
 
-                              color: secondaryTextColor,
-                            ),
-                          ),
+                    //           color: secondaryTextColor,
+                    //         ),
+                    //       ),
 
-                          filled: true,
+                    //       filled: true,
 
-                          fillColor: fieldColor,
+                    //       fillColor: fieldColor,
 
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 15,
-                          ),
+                    //       contentPadding: const EdgeInsets.symmetric(
+                    //         horizontal: 14,
+                    //         vertical: 15,
+                    //       ),
 
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide.none,
-                          ),
+                    //       border: OutlineInputBorder(
+                    //         borderRadius: BorderRadius.circular(8),
+                    //         borderSide: BorderSide.none,
+                    //       ),
 
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(
-                              color: Colors.white.withOpacity(0.06),
-                            ),
-                          ),
+                    //       enabledBorder: OutlineInputBorder(
+                    //         borderRadius: BorderRadius.circular(8),
+                    //         borderSide: BorderSide(
+                    //           color: Colors.white.withOpacity(0.06),
+                    //         ),
+                    //       ),
 
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: primaryColor),
-                          ),
-                        ),
-                      ),
-                    ),
-
+                    //       focusedBorder: OutlineInputBorder(
+                    //         borderRadius: BorderRadius.circular(8),
+                    //         borderSide: const BorderSide(color: primaryColor),
+                    //       ),
+                    //     ),
+                    //   ),
+                    // ),
                     _buildProfilePhoto(),
 
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
-
                       children: [
+                        // ================= ORGANIZATION =================
                         Expanded(
-                          child: DropdownButtonFormField<OrgData>(
+                          child: DropdownButtonFormField2<OrgData>(
                             value: selectedOrganization,
-
-                            dropdownColor: dialogColor,
+                            isExpanded: true,
 
                             decoration: InputDecoration(
                               labelText: 'Organization',
-
                               labelStyle: const TextStyle(
                                 color: secondaryTextColor,
                                 fontSize: 12,
@@ -728,7 +723,6 @@ final String lastName =
                               ),
 
                               filled: true,
-
                               fillColor: fieldColor,
 
                               contentPadding: const EdgeInsets.symmetric(
@@ -764,14 +758,59 @@ final String lastName =
                               ),
                             ),
 
+                            dropdownStyleData: DropdownStyleData(
+                              maxHeight: 150,
+                              width: 320,
+
+                              isOverButton: false,
+
+                              offset: const Offset(0, -40),
+
+                              padding: EdgeInsets.zero,
+
+                              decoration: BoxDecoration(
+                                color: dialogColor,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.08),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.25),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 5),
+                                  ),
+                                ],
+                              ),
+
+                              scrollbarTheme: ScrollbarThemeData(
+                                radius: const Radius.circular(10),
+                                thickness: WidgetStateProperty.all(5),
+                                thumbVisibility: WidgetStateProperty.all(true),
+                              ),
+                            ),
+
+                            menuItemStyleData: const MenuItemStyleData(
+                              height: 42,
+                              padding: EdgeInsets.symmetric(horizontal: 14),
+                            ),
+
+                            iconStyleData: const IconStyleData(
+                              icon: Icon(
+                                Icons.keyboard_arrow_down,
+                                size: 18,
+                                color: secondaryTextColor,
+                              ),
+                            ),
+
                             items: organizations.map<DropdownMenuItem<OrgData>>(
                               (OrgData org) {
                                 return DropdownMenuItem<OrgData>(
                                   value: org,
-
                                   child: Text(
                                     org.orgName ?? 'Unnamed Organization',
-
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontSize: 12,
@@ -793,15 +832,14 @@ final String lastName =
 
                         const SizedBox(width: 16),
 
+                        // ================= USER ROLE =================
                         Expanded(
-                          child: DropdownButtonFormField<String>(
+                          child: DropdownButtonFormField2<String>(
                             value: selectedRoleId,
-
-                            dropdownColor: dialogColor,
+                            isExpanded: true,
 
                             decoration: InputDecoration(
                               labelText: 'User Role',
-
                               labelStyle: const TextStyle(
                                 color: secondaryTextColor,
                                 fontSize: 12,
@@ -814,7 +852,6 @@ final String lastName =
                               ),
 
                               filled: true,
-
                               fillColor: fieldColor,
 
                               contentPadding: const EdgeInsets.symmetric(
@@ -850,8 +887,54 @@ final String lastName =
                               ),
                             ),
 
-                            items: const [
-                              DropdownMenuItem<String>(
+                            dropdownStyleData: DropdownStyleData(
+                              maxHeight: 150,
+                              width: 320,
+
+                              // Dropdown below the field
+                              isOverButton: false,
+
+                              offset: const Offset(0, -40),
+
+                              padding: EdgeInsets.zero,
+
+                              decoration: BoxDecoration(
+                                color: dialogColor,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.08),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.25),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 5),
+                                  ),
+                                ],
+                              ),
+
+                              scrollbarTheme: ScrollbarThemeData(
+                                radius: const Radius.circular(10),
+                                thickness: WidgetStateProperty.all(5),
+                                thumbVisibility: WidgetStateProperty.all(true),
+                              ),
+                            ),
+
+                            menuItemStyleData: const MenuItemStyleData(
+                              height: 42,
+                              padding: EdgeInsets.symmetric(horizontal: 14),
+                            ),
+
+                            iconStyleData: const IconStyleData(
+                              icon: Icon(
+                                Icons.keyboard_arrow_down,
+                                size: 18,
+                                color: secondaryTextColor,
+                              ),
+                            ),
+
+                            items: [
+                              const DropdownMenuItem<String>(
                                 value: '2',
                                 child: Text(
                                   'Super Admin',
@@ -862,7 +945,7 @@ final String lastName =
                                 ),
                               ),
 
-                              DropdownMenuItem<String>(
+                              const DropdownMenuItem<String>(
                                 value: '4',
                                 child: Text(
                                   'Admin',
@@ -873,7 +956,7 @@ final String lastName =
                                 ),
                               ),
 
-                              DropdownMenuItem<String>(
+                              const DropdownMenuItem<String>(
                                 value: '3',
                                 child: Text(
                                   'Manager',
@@ -884,7 +967,7 @@ final String lastName =
                                 ),
                               ),
 
-                              DropdownMenuItem<String>(
+                              const DropdownMenuItem<String>(
                                 value: '5',
                                 child: Text(
                                   'Fleet Manager',
@@ -895,7 +978,7 @@ final String lastName =
                                 ),
                               ),
 
-                              DropdownMenuItem<String>(
+                              const DropdownMenuItem<String>(
                                 value: '6',
                                 child: Text(
                                   'Route Manager',
@@ -906,7 +989,7 @@ final String lastName =
                                 ),
                               ),
 
-                              DropdownMenuItem<String>(
+                              const DropdownMenuItem<String>(
                                 value: '7',
                                 child: Text(
                                   'Driver',
@@ -917,7 +1000,7 @@ final String lastName =
                                 ),
                               ),
 
-                              DropdownMenuItem<String>(
+                              const DropdownMenuItem<String>(
                                 value: '9',
                                 child: Text(
                                   'Viewer',
@@ -941,23 +1024,8 @@ final String lastName =
                       ],
                     ),
                     const SizedBox(height: 10),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
 
-                      children: [
-                        Expanded(
-                          child: _buildField(
-                            label: 'Status',
-                            controller: statusController,
-                            icon: Icons.toggle_on_outlined,
-                          ),
-                        ),
-
-                        const SizedBox(width: 16),
-
-                        Expanded(child: _buildActiveSwitch()),
-                      ],
-                    ),
+                    _buildActiveSwitch(),
                   ],
                 ),
               ),
@@ -1182,16 +1250,12 @@ final String lastName =
   Widget _buildActiveSwitch() {
     return Container(
       height: 52,
-
       margin: const EdgeInsets.only(bottom: 12),
-
       padding: const EdgeInsets.symmetric(horizontal: 14),
 
       decoration: BoxDecoration(
         color: fieldColor,
-
         borderRadius: BorderRadius.circular(8),
-
         border: Border.all(color: Colors.white.withOpacity(0.06)),
       ),
 
@@ -1208,13 +1272,10 @@ final String lastName =
           const Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-
               crossAxisAlignment: CrossAxisAlignment.start,
-
               children: [
                 Text(
                   'Is Active',
-
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -1226,7 +1287,6 @@ final String lastName =
 
                 Text(
                   'Enable user account',
-
                   style: TextStyle(color: Color(0xff697482), fontSize: 9),
                 ),
               ],
@@ -1245,12 +1305,9 @@ final String lastName =
                   },
 
             activeColor: Colors.white,
-
             activeTrackColor: primaryColor,
-
             inactiveThumbColor: secondaryTextColor,
-
-            inactiveTrackColor: Color(0xff2b3745),
+            inactiveTrackColor: const Color(0xff2b3745),
           ),
         ],
       ),

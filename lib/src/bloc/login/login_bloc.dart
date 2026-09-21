@@ -13,6 +13,26 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
   LoginBloc() : super(LoginInitial()) {
     on<LoginSubmitted>(_onLoginSubmitted);
   }
+  String _getRoleName(dynamic roleId) {
+    switch (roleId?.toString()) {
+      case '2':
+        return 'Super Admin';
+      case '4':
+        return 'Admin';
+      case '3':
+        return 'Manager';
+      case '5':
+        return 'Fleet Manager';
+      case '6':
+        return 'Route Manager';
+      case '7':
+        return 'Driver';
+      case '9':
+        return 'Viewer';
+      default:
+        return 'Unknown Role';
+    }
+  }
 
   Future<void> _onLoginSubmitted(
     LoginSubmitted event,
@@ -26,10 +46,6 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': event.email, 'password': event.password}),
       );
-
-      debugPrint('STATUS CODE: ${response.statusCode}');
-      debugPrint('RESPONSE BODY: ${response.body}');
-      debugPrint('RESPONSE HEADERS: ${response.headers}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final responseData = jsonDecode(response.body);
@@ -59,32 +75,34 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
           return;
         }
 
-        // Save login information
         final prefs = await SharedPreferences.getInstance();
 
         await prefs.setString('accessToken', token.toString());
 
-        await prefs.setString('user_id', userData['id'].toString());
+        await prefs.setString('user_id', userData['id']?.toString() ?? '');
 
-        await prefs.setString('full_name', userData['full_name'].toString());
+        await prefs.setString(
+          'fullname',
+          userData['full_name']?.toString() ?? '',
+        );
 
-        await prefs.setString('email', userData['email'].toString());
+        await prefs.setString('email', userData['email']?.toString() ?? '');
 
         await prefs.setString(
           'organization_id',
-          userData['organization_id'].toString(),
+          userData['organization_id']?.toString() ?? '',
         );
 
-        await prefs.setString('role_id', userData['role_id'].toString());
+        await prefs.setString(
+          'organization_name',
+          userData['organization_name']?.toString() ?? '',
+        );
 
-        debugPrint('======================================');
-        debugPrint('LOGIN DATA SAVED');
-        debugPrint('User ID: ${userData['id']}');
-        debugPrint('Name: ${userData['full_name']}');
-        debugPrint('Organization ID: ${userData['organization_id']}');
-        debugPrint('Role ID: ${userData['role_id']}');
-        debugPrint('======================================');
+        await prefs.setString('role_id', userData['role_id']?.toString() ?? '');
 
+        final String roleName = _getRoleName(userData['role_id']);
+
+        await prefs.setString('role', roleName);
         emit(LoginSuccess(token: token.toString()));
       } else {
         String errorMessage = 'Login failed';
