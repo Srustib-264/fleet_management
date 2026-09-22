@@ -11,6 +11,7 @@ class UserApiService {
   Future<UserCRUDModel> getUsers({
     String? userRole,
     String? searchText,
+    String? sort,
     int page = 1,
     int sizePerPage = 10,
     int currentIndex = 0,
@@ -36,7 +37,9 @@ class UserApiService {
       if (userRole != null && userRole.trim().isNotEmpty) {
         queryParameters['user_role'] = userRole.trim();
       }
-
+      if (sort != null && sort.trim().isNotEmpty) {
+        queryParameters['sort'] = sort.trim();
+      }
       final uri = baseUri.replace(queryParameters: queryParameters);
 
       final response = await http.get(
@@ -153,7 +156,6 @@ class UserApiService {
 
       final request = http.MultipartRequest('POST', uri);
 
-      // Authorization
       request.headers['Authorization'] = 'Bearer $token';
 
       userData.forEach((key, value) {
@@ -162,7 +164,6 @@ class UserApiService {
         }
       });
 
-      // Add profile image
       if (profilePhoto != null) {
         final bytes = await profilePhoto.readAsBytes();
 

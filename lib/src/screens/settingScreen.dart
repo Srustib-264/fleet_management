@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'CRUDScreens/goupCRUDScreen.dart';
 import 'CRUDScreens/orgCRUDScreen.dart';
 import 'CRUDScreens/roleCRUDScreen.dart';
 import 'CRUDScreens/userCRUDScreen.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   final String initialTab;
 
   const SettingsScreen({super.key, this.initialTab = 'users'});
 
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
   static const Color backgroundColor = Color(0xff252b33);
   static const Color panelColor = Color(0xff202b39);
   static const Color primaryBlue = Color(0xff078df5);
@@ -19,14 +25,34 @@ class SettingsScreen extends StatelessWidget {
   static const Color secondaryText = Color(0xff8994a2);
   static const Color mutedText = Color(0xff697482);
 
+  String? userRole;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserRole();
+  }
+
+  Future<void> _loadUserRole() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    if (!mounted) return;
+
+    setState(() {
+      userRole = prefs.getString('role');
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentPath = GoRouterState.of(context).uri.path;
-
     final bool isUsers = currentPath == '/settings/users';
     final bool isGroups = currentPath == '/settings/groups';
     final bool isOrgs = currentPath == '/settings/orgs';
     final bool isRoles = currentPath == '/settings/roles';
+    final bool isSuperAdmin = userRole?.trim().toLowerCase() == 'super admin';
+    final bool isAdmin = userRole?.trim().toLowerCase() == 'admin';
+
     return Scaffold(
       backgroundColor: backgroundColor,
 
@@ -105,23 +131,6 @@ class SettingsScreen extends StatelessWidget {
 
                     const SizedBox(height: 14),
 
-                    // ------------------------------------------
-                    // GENERAL LABEL
-                    // ------------------------------------------
-                    const Padding(
-                      padding: EdgeInsets.only(left: 20, bottom: 8),
-
-                      child: Text(
-                        'GENERAL',
-                        style: TextStyle(
-                          color: mutedText,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
-                    ),
-
                     _buildSettingsItem(
                       title: 'Users',
                       icon: Icons.person_outline,
@@ -131,16 +140,16 @@ class SettingsScreen extends StatelessWidget {
                         context.go('/settings/users');
                       },
                     ),
+                    if (!isAdmin)
+                      _buildSettingsItem(
+                        title: 'Organizations',
+                        icon: Icons.groups_outlined,
+                        selected: isOrgs,
 
-                    _buildSettingsItem(
-                      title: 'Organizations',
-                      icon: Icons.groups_outlined,
-                      selected: isOrgs,
-
-                      onTap: () {
-                        context.go('/settings/orgs');
-                      },
-                    ),
+                        onTap: () {
+                          context.go('/settings/orgs');
+                        },
+                      ),
                     _buildSettingsItem(
                       title: 'Roles',
                       icon: Icons.admin_panel_settings_outlined,
@@ -150,6 +159,7 @@ class SettingsScreen extends StatelessWidget {
                         context.go('/settings/roles');
                       },
                     ),
+                    // if (!isSuperAdmin)
                     _buildSettingsItem(
                       title: 'Groups',
                       icon: Icons.groups_outlined,

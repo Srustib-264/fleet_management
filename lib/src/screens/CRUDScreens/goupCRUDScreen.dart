@@ -1,4 +1,8 @@
+import 'dart:async';
+
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/groupCRUDModel.dart';
 import '../../models/orgCRUDModel.dart';
@@ -14,7 +18,13 @@ class GroupCRUDScreen extends StatefulWidget {
 
 class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
   final GroupApiService _groupApiService = GroupApiService();
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _searchDebounce;
 
+  int currentPage = 1;
+  int rowsPerPage = 10;
+  int totalPages = 1;
+  int totalCount = 0;
   GroupCRUDModel? groupData;
 
   bool isLoading = true;
@@ -23,15 +33,34 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
   final OrgApiService _orgApiService = OrgApiService();
 
   OrgCRUDModel? organizationData;
-
+  String organization_name = '--';
+  String? organization_id;
   bool isOrganizationsLoading = false;
   String? organizationError;
+
   @override
   void initState() {
     super.initState();
 
     _loadGroups();
     _loadOrganizations();
+    _loadOrganization();
+  }
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadOrganization() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    setState(() {
+      organization_name = prefs.getString('organization_name') ?? '--';
+      organization_id = prefs.getString('organization_id');
+    });
   }
 
   Future<void> _loadOrganizations() async {
@@ -61,7 +90,7 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
     }
   }
 
-  Future<void> _loadGroups() async {
+  Future<void> _loadGroups({String? searchText}) async {
     if (mounted) {
       setState(() {
         isLoading = true;
@@ -70,12 +99,21 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
     }
 
     try {
-      final result = await _groupApiService.getGroups();
+      final result = await _groupApiService.getGroups(
+        searchText: searchText,
+        page: currentPage,
+        sizePerPage: rowsPerPage,
+        currentIndex: (currentPage - 1) * rowsPerPage,
+      );
 
       if (!mounted) return;
 
       setState(() {
         groupData = result;
+
+        totalCount = result.pagination?.totalRecords ?? 0;
+        totalPages = result.pagination?.totalPages ?? 1;
+
         isLoading = false;
       });
     } catch (e) {
@@ -136,7 +174,172 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
                 ],
               ),
             ),
+          ],
+        ),
 
+        const SizedBox(height: 20),
+
+        Row(
+          children: [
+            SizedBox(
+              width: 260,
+              height: 38,
+              child: TextField(
+                controller: _searchController,
+                style: const TextStyle(color: Colors.white, fontSize: 11),
+                onChanged: (value) {
+                  _searchDebounce?.cancel();
+
+                  _searchDebounce = Timer(
+                    const Duration(milliseconds: 500),
+                    () {
+                      currentPage = 1;
+
+                      final searchText = value.trim();
+
+                      _loadGroups(
+                        searchText: searchText.isEmpty ? null : searchText,
+                      );
+                    },
+                  );
+                },
+                decoration: InputDecoration(
+                  hintText: 'Search groups...',
+
+                  hintStyle: const TextStyle(
+                    color: Color(0xff596575),
+                    fontSize: 11,
+                  ),
+
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    size: 17,
+                    color: Color(0xff8994a2),
+                  ),
+
+                  filled: true,
+                  fillColor: const Color(0xff202b39),
+
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(7),
+                    borderSide: BorderSide.none,
+                  ),
+
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(7),
+                    borderSide: BorderSide(
+                      color: Colors.white.withOpacity(0.06),
+                    ),
+                  ),
+
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(7),
+                    borderSide: const BorderSide(color: Color(0xff078df5)),
+                  ),
+                ),
+              ),
+            ),
+
+            const Spacer(),
+
+            const SizedBox(width: 8),
+            const Text(
+              'Page :',
+              style: TextStyle(color: Color(0xff8994a2), fontSize: 12),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              width: 70,
+              height: 36,
+              decoration: BoxDecoration(
+                color: const Color(0xff202b39),
+                borderRadius: BorderRadius.circular(7),
+                border: Border.all(color: Colors.white.withOpacity(0.06)),
+              ),
+              child: DropdownButton2<int>(
+                value: 10,
+                isExpanded: true,
+
+                buttonStyleData: ButtonStyleData(
+                  width: 70,
+                  height: 36,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xff202b39),
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                ),
+
+                iconStyleData: const IconStyleData(
+                  icon: Icon(
+                    Icons.keyboard_arrow_down,
+                    size: 17,
+                    color: Color(0xff8994a2),
+                  ),
+                ),
+
+                style: const TextStyle(color: Color(0xff8994a2), fontSize: 11),
+
+                underline: const SizedBox(),
+
+                // POPUP
+                dropdownStyleData: DropdownStyleData(
+                  width: 70,
+
+                  offset: const Offset(0, -3),
+
+                  // Fixed popup height
+                  maxHeight: 180,
+
+                  padding: EdgeInsets.zero,
+
+                  decoration: BoxDecoration(
+                    color: const Color(0xff202b39),
+                    borderRadius: BorderRadius.circular(7),
+                    border: Border.all(color: Colors.white.withOpacity(0.06)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.25),
+                        blurRadius: 12,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                ),
+
+                menuItemStyleData: const MenuItemStyleData(
+                  height: 40,
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                ),
+
+                items: const [
+                  DropdownMenuItem<int>(value: 10, child: Text('10')),
+                  DropdownMenuItem<int>(value: 25, child: Text('25')),
+                  DropdownMenuItem<int>(value: 50, child: Text('50')),
+                  DropdownMenuItem<int>(value: 100, child: Text('100')),
+                ],
+
+                onChanged: (value) async {
+                  if (value == null) return;
+
+                  setState(() {
+                    rowsPerPage = value;
+                    currentPage = 1;
+                  });
+
+                  await _loadGroups(
+                    searchText: _searchController.text.trim().isEmpty
+                        ? null
+                        : _searchController.text.trim(),
+                  );
+                },
+              ),
+            ),
             const SizedBox(width: 10),
 
             SizedBox(
@@ -162,12 +365,11 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
           ],
         ),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: 15),
 
-        // ========================================================
-        // BODY
-        // ========================================================
         Expanded(child: _buildBody()),
+
+        if (!isLoading) _buildPaginationControls(),
       ],
     );
   }
@@ -224,11 +426,6 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
 
     return _buildGroupTable(data);
   }
-
-  // ============================================================
-  // GROUP TABLE
-  // Same visual structure as UserCRUDScreen
-  // ============================================================
 
   Widget _buildGroupTable(List<GroupData> data) {
     return Container(
@@ -539,6 +736,215 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
   // ============================================================
   // FIELD
   // ============================================================
+  Widget _buildPaginationControls() {
+    const int visiblePages = 5;
+
+    int startPage = ((currentPage - 1) ~/ visiblePages) * visiblePages + 1;
+
+    int endPage = startPage + visiblePages - 1;
+
+    if (endPage > totalPages) {
+      endPage = totalPages;
+    }
+
+    return SizedBox(
+      height: 48,
+      child: Center(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildPaginationArrow(
+              icon: Icons.chevron_left_rounded,
+              enabled: currentPage > 1,
+              onTap: () {
+                setState(() {
+                  currentPage--;
+                });
+
+                _loadGroups(
+                  searchText: _searchController.text.trim().isEmpty
+                      ? null
+                      : _searchController.text.trim(),
+                );
+              },
+            ),
+
+            const SizedBox(width: 6),
+
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(endPage - startPage + 1, (index) {
+                final page = startPage + index;
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: _buildPageButton(
+                    page: page,
+                    isSelected: page == currentPage,
+                  ),
+                );
+              }),
+            ),
+
+            const SizedBox(width: 6),
+
+            _buildPaginationArrow(
+              icon: Icons.chevron_right_rounded,
+              enabled: currentPage < totalPages,
+              onTap: () {
+                setState(() {
+                  currentPage++;
+                });
+
+                _loadGroups(
+                  searchText: _searchController.text.trim().isEmpty
+                      ? null
+                      : _searchController.text.trim(),
+                );
+              },
+            ),
+
+            const SizedBox(width: 20),
+
+            SizedBox(
+              width: 88,
+              height: 26,
+              child: TextField(
+                keyboardType: TextInputType.number,
+                style: const TextStyle(color: Colors.white, fontSize: 11),
+                decoration: InputDecoration(
+                  hintText: 'Page',
+                  hintStyle: const TextStyle(
+                    color: Color(0xff697482),
+                    fontSize: 11,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 11,
+                    vertical: 8,
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xff202b39),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(7),
+                    borderSide: BorderSide(
+                      color: Colors.white.withOpacity(0.08),
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(7),
+                    borderSide: BorderSide(
+                      color: Colors.white.withOpacity(0.08),
+                    ),
+                  ),
+                  focusedBorder: const OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(7)),
+                    borderSide: BorderSide(color: Color(0xff078df5)),
+                  ),
+                ),
+                onSubmitted: (value) {
+                  final page = int.tryParse(value);
+
+                  if (page == null) {
+                    return;
+                  }
+
+                  if (page < 1 || page > totalPages) {
+                    _showError('Please enter a page between 1 and $totalPages');
+                    return;
+                  }
+
+                  setState(() {
+                    currentPage = page;
+                  });
+
+                  _loadGroups(
+                    searchText: _searchController.text.trim().isEmpty
+                        ? null
+                        : _searchController.text.trim(),
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(width: 14),
+
+            // ========================================
+            // PAGE INFORMATION
+            // ========================================
+            Text(
+              'Page $currentPage of $totalPages · $totalCount items',
+              style: const TextStyle(
+                color: Color(0xff8994a2),
+                fontSize: 11,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPageButton({required int page, required bool isSelected}) {
+    return InkWell(
+      onTap: isSelected
+          ? null
+          : () async {
+              setState(() {
+                currentPage = page;
+              });
+
+              await _loadGroups(
+                searchText: _searchController.text.trim().isEmpty
+                    ? null
+                    : _searchController.text.trim(),
+              );
+            },
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        width: 20,
+        height: 20,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xff078df5) : const Color(0xff202b39),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xff078df5)
+                : Colors.white.withOpacity(0.06),
+          ),
+        ),
+        child: Text(
+          '$page',
+          style: TextStyle(
+            color: isSelected ? Colors.white : const Color(0xff8994a2),
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaginationArrow({
+    required IconData icon,
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: enabled ? onTap : null,
+      borderRadius: BorderRadius.circular(6),
+      child: SizedBox(
+        width: 32,
+        height: 38,
+        child: Icon(
+          icon,
+          size: 23,
+          color: enabled ? Colors.white : Colors.white.withOpacity(0.20),
+        ),
+      ),
+    );
+  }
 
   Widget _buildGroupField({
     required String label,
@@ -600,29 +1006,19 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
   }
 
   Widget _buildOrganizationDropdown({
+    required List<OrgData> organizations,
     required String? selectedOrganizationId,
     required ValueChanged<String?> onChanged,
   }) {
-    final organizations = organizationData?.data ?? [];
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: DropdownButtonFormField<String>(
+      child: DropdownButtonFormField2<String>(
         value: selectedOrganizationId,
-
-        dropdownColor: const Color(0xff202b39),
-
-        style: const TextStyle(color: Colors.white, fontSize: 12.5),
+        isExpanded: true,
 
         decoration: InputDecoration(
           labelText: 'Organization',
-
           labelStyle: const TextStyle(color: Color(0xff8994a2), fontSize: 12),
-
-          floatingLabelStyle: const TextStyle(
-            color: Color(0xff078df5),
-            fontSize: 12,
-          ),
 
           prefixIcon: const Icon(
             Icons.business_outlined,
@@ -654,13 +1050,66 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
           ),
         ),
 
-        items: organizations.map((organization) {
-          final id = organization.id?.toString() ?? '';
-          final name = organization.orgName ?? '-';
+        hint: const Text(
+          'Select Organization',
+          style: TextStyle(color: Color(0xff596575), fontSize: 11),
+        ),
 
+        dropdownStyleData: DropdownStyleData(
+          maxHeight: 150,
+          width: 664,
+
+          // Opens over the dialog instead of pushing it
+          isOverButton: true,
+
+          offset: const Offset(0, -50),
+
+          padding: EdgeInsets.zero,
+
+          decoration: BoxDecoration(
+            color: const Color(0xff202b39),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.white.withOpacity(0.08)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.25),
+                blurRadius: 12,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+
+          scrollbarTheme: ScrollbarThemeData(
+            radius: const Radius.circular(10),
+            thickness: WidgetStateProperty.all(5),
+            thumbVisibility: WidgetStateProperty.all(true),
+          ),
+        ),
+
+        menuItemStyleData: const MenuItemStyleData(
+          height: 42,
+          padding: EdgeInsets.symmetric(horizontal: 14),
+        ),
+
+        iconStyleData: const IconStyleData(
+          icon: Icon(
+            Icons.keyboard_arrow_down,
+            size: 18,
+            color: Color(0xff8994a2),
+          ),
+        ),
+
+        items: organizations.map<DropdownMenuItem<String>>((
+          OrgData organization,
+        ) {
           return DropdownMenuItem<String>(
-            value: id,
-            child: Text(name, overflow: TextOverflow.ellipsis),
+            value: organization.id,
+            child: Text(
+              organization.orgName ?? organization_name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+            ),
           );
         }).toList(),
 
@@ -668,22 +1117,38 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
       ),
     );
   }
-  // ============================================================
-  // ADD GROUP
-  // ============================================================
 
-  void _showAddGroupDialog() {
+  Future<void> _showAddGroupDialog() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final String? role = prefs.getString('role');
+    final String? adminOrganizationId = prefs.getString('organization_id');
+
+    final bool isAdmin = role?.trim().toLowerCase() == 'admin';
+
+    if (isAdmin &&
+        (adminOrganizationId == null || adminOrganizationId.isEmpty)) {
+      _showError('Organization ID is missing');
+      return;
+    }
+
+    String? selectedOrganizationId = isAdmin ? adminOrganizationId : null;
+
     final groupCodeController = TextEditingController();
     final groupNameController = TextEditingController();
     final descriptionController = TextEditingController();
-    // final organizationIdController = TextEditingController();
-    String? selectedOrganizationId;
+
     bool isCreating = false;
 
-    showDialog(
+    if (!isAdmin && organizationData == null) {
+      await _loadOrganizations();
+    }
+
+    if (!mounted) return;
+
+    return showDialog(
       context: context,
       barrierDismissible: false,
-
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
@@ -755,28 +1220,33 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
               title: 'Add Group',
               subtitle: 'Create a new group and assign it to an organization',
               icon: Icons.group_add_outlined,
+
               groupCodeController: groupCodeController,
               groupNameController: groupNameController,
               descriptionController: descriptionController,
-              // organizationIdController: organizationIdController,
+
+              organizations: organizationData?.data ?? [],
+
               selectedOrganizationId: selectedOrganizationId,
 
               onOrganizationChanged: (value) {
+                if (isAdmin) return;
+
                 setDialogState(() {
                   selectedOrganizationId = value;
                 });
               },
+
               isLoading: isCreating,
               onSave: createGroup,
               saveText: 'Create Group',
-              saveIcon: Icons.group_add_outlined,
+              saveIcon: Icons.add,
             );
           },
         );
       },
     );
   }
-
   // ============================================================
   // EDIT GROUP
   // ============================================================
@@ -877,10 +1347,11 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
               title: 'Update Group',
               subtitle: 'Update group and organization details',
               icon: Icons.edit_outlined,
+
               groupCodeController: groupCodeController,
               groupNameController: groupNameController,
               descriptionController: descriptionController,
-
+              organizations: organizationData?.data ?? [],
               selectedOrganizationId: selectedOrganizationId,
 
               onOrganizationChanged: (value) {
@@ -899,10 +1370,6 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
       },
     );
   }
-  // ============================================================
-  // COMMON GROUP DIALOG
-  // Same UI style as User Add dialog
-  // ============================================================
 
   Widget _buildGroupDialog({
     required BuildContext context,
@@ -913,6 +1380,7 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
     required TextEditingController groupCodeController,
     required TextEditingController groupNameController,
     required TextEditingController descriptionController,
+    required List<OrgData> organizations,
     // required TextEditingController organizationIdController,
     required String? selectedOrganizationId,
     required ValueChanged<String?> onOrganizationChanged,
@@ -929,7 +1397,7 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
       child: Container(
         width: 720,
 
-        constraints: const BoxConstraints(maxWidth: 720, maxHeight: 650),
+        constraints: const BoxConstraints(maxWidth: 720, maxHeight: 400),
 
         decoration: BoxDecoration(
           color: const Color(0xff202b39),
@@ -949,9 +1417,6 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
 
         child: Column(
           children: [
-            // ==================================================
-            // HEADER
-            // ==================================================
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 20, 16, 20),
 
@@ -1018,11 +1483,6 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
               ),
             ),
 
-            Divider(height: 1, color: Colors.white.withOpacity(0.07)),
-
-            // ==================================================
-            // CONTENT
-            // ==================================================
             Flexible(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(28, 24, 28, 20),
@@ -1066,6 +1526,7 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
                     ),
 
                     _buildOrganizationDropdown(
+                      organizations: organizations,
                       selectedOrganizationId: selectedOrganizationId,
                       onChanged: onOrganizationChanged,
                     ),
@@ -1073,11 +1534,6 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
                 ),
               ),
             ),
-
-            // ==================================================
-            // FOOTER
-            // ==================================================
-            Divider(height: 1, color: Colors.white.withOpacity(0.07)),
 
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 15, 24, 15),
@@ -1149,10 +1605,6 @@ class _GroupCRUDScreenState extends State<GroupCRUDScreen> {
       ),
     );
   }
-
-  // ============================================================
-  // DELETE
-  // ============================================================
 
   void _showDeleteDialog(GroupData group) {
     showDialog(

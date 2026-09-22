@@ -2,8 +2,9 @@ class GroupCRUDModel {
   bool? success;
   String? message;
   List<GroupData>? data;
+  Pagination? pagination;
 
-  GroupCRUDModel({this.success, this.message, this.data});
+  GroupCRUDModel({this.success, this.message, this.data, this.pagination});
 
   GroupCRUDModel.fromJson(Map<String, dynamic> json) {
     success = json['success'];
@@ -15,6 +16,10 @@ class GroupCRUDModel {
       json['data'].forEach((v) {
         data!.add(GroupData.fromJson(v));
       });
+    }
+
+    if (json['pagination'] != null) {
+      pagination = Pagination.fromJson(json['pagination']);
     }
   }
 
@@ -28,7 +33,45 @@ class GroupCRUDModel {
       data['data'] = this.data!.map((v) => v.toJson()).toList();
     }
 
+    if (pagination != null) {
+      data['pagination'] = pagination!.toJson();
+    }
+
     return data;
+  }
+}
+
+class Pagination {
+  int? page;
+  int? sizePerPage;
+  int? currentIndex;
+  int? totalRecords;
+  int? totalPages;
+
+  Pagination({
+    this.page,
+    this.sizePerPage,
+    this.currentIndex,
+    this.totalRecords,
+    this.totalPages,
+  });
+
+  Pagination.fromJson(Map<String, dynamic> json) {
+    page = json['page'];
+    sizePerPage = json['sizePerPage'];
+    currentIndex = json['currentIndex'];
+    totalRecords = json['totalRecords'];
+    totalPages = json['totalPages'];
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'page': page,
+      'sizePerPage': sizePerPage,
+      'currentIndex': currentIndex,
+      'totalRecords': totalRecords,
+      'totalPages': totalPages,
+    };
   }
 }
 

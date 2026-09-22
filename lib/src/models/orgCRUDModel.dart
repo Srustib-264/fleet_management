@@ -2,11 +2,13 @@ class OrgCRUDModel {
   final bool success;
   final String message;
   final List<OrgData> data;
+  final Pagination? pagination;
 
   OrgCRUDModel({
     required this.success,
     required this.message,
     required this.data,
+    this.pagination,
   });
 
   factory OrgCRUDModel.fromJson(Map<String, dynamic> json) {
@@ -18,6 +20,9 @@ class OrgCRUDModel {
               (json['data'] as List).map((item) => OrgData.fromJson(item)),
             )
           : [],
+      pagination: json['pagination'] != null
+          ? Pagination.fromJson(json['pagination'])
+          : null,
     );
   }
 
@@ -26,6 +31,43 @@ class OrgCRUDModel {
       'success': success,
       'message': message,
       'data': data.map((item) => item.toJson()).toList(),
+      'pagination': pagination?.toJson(),
+    };
+  }
+}
+
+class Pagination {
+  final int page;
+  final int sizePerPage;
+  final int currentIndex;
+  final int totalRecords;
+  final int totalPages;
+
+  Pagination({
+    required this.page,
+    required this.sizePerPage,
+    required this.currentIndex,
+    required this.totalRecords,
+    required this.totalPages,
+  });
+
+  factory Pagination.fromJson(Map<String, dynamic> json) {
+    return Pagination(
+      page: json['page'] ?? 1,
+      sizePerPage: json['sizePerPage'] ?? 10,
+      currentIndex: json['currentIndex'] ?? 0,
+      totalRecords: json['totalRecords'] ?? 0,
+      totalPages: json['totalPages'] ?? 1,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'page': page,
+      'sizePerPage': sizePerPage,
+      'currentIndex': currentIndex,
+      'totalRecords': totalRecords,
+      'totalPages': totalPages,
     };
   }
 }

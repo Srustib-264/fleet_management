@@ -27,8 +27,7 @@ class _OrgCRUDUpdateState extends State<OrgCRUDUpdate> {
   late final TextEditingController phoneController;
   late final TextEditingController addressController;
 
-  String selectedStatus = 'active';
-
+  bool isActive = true;
   bool isUpdating = false;
 
   // ============================================================
@@ -63,12 +62,9 @@ class _OrgCRUDUpdateState extends State<OrgCRUDUpdate> {
       text: widget.organization.address ?? '',
     );
 
-    // IMPORTANT:
-    // Dropdown only accepts exactly "active" or "inactive".
     final String status =
         widget.organization.status?.trim().toLowerCase() ?? '';
-
-    selectedStatus = status == 'inactive' ? 'inactive' : 'active';
+    isActive = status != 'inactive';
   }
 
   // ============================================================
@@ -90,6 +86,23 @@ class _OrgCRUDUpdateState extends State<OrgCRUDUpdate> {
   // ============================================================
   // UPDATE ORGANIZATION
   // ============================================================
+
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message, style: const TextStyle(fontSize: 11)),
+          backgroundColor: isError
+              ? Colors.red.shade700
+              : const Color(0xff202b39),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+  }
 
   Future<void> _updateOrganization() async {
     final String? organizationId = widget.organization.id;
@@ -115,7 +128,7 @@ class _OrgCRUDUpdateState extends State<OrgCRUDUpdate> {
       'email': emailController.text.trim(),
       'phone': phoneController.text.trim(),
       'address': addressController.text.trim(),
-      'status': selectedStatus,
+      'status': isActive ? 'active' : 'inactive',
     };
 
     try {
@@ -159,14 +172,10 @@ class _OrgCRUDUpdateState extends State<OrgCRUDUpdate> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // ==================================================
-            // HEADER
-            // ==================================================
             Padding(
-              padding: const EdgeInsets.fromLTRB(30, 28, 26, 24),
+              padding: const EdgeInsets.fromLTRB(30, 28, 0, 24),
               child: Row(
                 children: [
-                  // ICON
                   Container(
                     width: 52,
                     height: 52,
@@ -180,10 +189,7 @@ class _OrgCRUDUpdateState extends State<OrgCRUDUpdate> {
                       size: 27,
                     ),
                   ),
-
                   const SizedBox(width: 18),
-
-                  // TITLE
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -207,8 +213,6 @@ class _OrgCRUDUpdateState extends State<OrgCRUDUpdate> {
                       ],
                     ),
                   ),
-
-                  // CLOSE
                   IconButton(
                     onPressed: isUpdating
                         ? null
@@ -224,91 +228,26 @@ class _OrgCRUDUpdateState extends State<OrgCRUDUpdate> {
                 ],
               ),
             ),
-
-            Divider(height: 1, color: Colors.white.withOpacity(0.06)),
-
-            // ==================================================
-            // FORM
-            // ==================================================
             Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(30, 26, 30, 20),
+                padding: const EdgeInsets.fromLTRB(30, 0, 30, 20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ------------------------------------------
-                    // ORGANIZATION INFORMATION HEADER
-                    // ------------------------------------------
-                    Row(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: const Color(0xff8994a2).withOpacity(0.10),
-                            borderRadius: BorderRadius.circular(9),
-                          ),
-                          child: const Icon(
-                            Icons.business_outlined,
-                            color: Color(0xff8994a2),
-                            size: 20,
-                          ),
-                        ),
-
-                        const SizedBox(width: 14),
-
-                        const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Organization Information',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Update the basic organization details',
-                              style: TextStyle(
-                                color: Color(0xff8994a2),
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-
                     const SizedBox(height: 20),
-
-                    // ------------------------------------------
-                    // ORGANIZATION NAME
-                    // ------------------------------------------
                     _buildInputField(
                       controller: orgNameController,
                       hintText: 'Organization Name',
                       icon: Icons.business_outlined,
                     ),
-
                     const SizedBox(height: 16),
-
-                    // ------------------------------------------
-                    // DESCRIPTION
-                    // ------------------------------------------
                     _buildInputField(
                       controller: descriptionController,
                       hintText: 'Description',
                       icon: Icons.description_outlined,
                       maxLines: 3,
                     ),
-
                     const SizedBox(height: 16),
-
-                    // ------------------------------------------
-                    // CONTACT + EMAIL
-                    // ------------------------------------------
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -319,9 +258,7 @@ class _OrgCRUDUpdateState extends State<OrgCRUDUpdate> {
                             icon: Icons.person_outline,
                           ),
                         ),
-
                         const SizedBox(width: 20),
-
                         Expanded(
                           child: _buildInputField(
                             controller: emailController,
@@ -332,12 +269,7 @@ class _OrgCRUDUpdateState extends State<OrgCRUDUpdate> {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 16),
-
-                    // ------------------------------------------
-                    // PHONE + ADDRESS
-                    // ------------------------------------------
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -349,9 +281,7 @@ class _OrgCRUDUpdateState extends State<OrgCRUDUpdate> {
                             keyboardType: TextInputType.phone,
                           ),
                         ),
-
                         const SizedBox(width: 20),
-
                         Expanded(
                           child: _buildInputField(
                             controller: addressController,
@@ -362,29 +292,17 @@ class _OrgCRUDUpdateState extends State<OrgCRUDUpdate> {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 16),
-
-                    // ------------------------------------------
-                    // STATUS
-                    // ------------------------------------------
-                    _buildStatusDropdown(),
+                    _buildStatusToggle(),
                   ],
                 ),
               ),
             ),
-
-            // ==================================================
-            // FOOTER
-            // ==================================================
-            Divider(height: 1, color: Colors.white.withOpacity(0.06)),
-
             Padding(
               padding: const EdgeInsets.fromLTRB(30, 14, 30, 18),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  // CANCEL
                   TextButton(
                     onPressed: isUpdating
                         ? null
@@ -402,10 +320,7 @@ class _OrgCRUDUpdateState extends State<OrgCRUDUpdate> {
                       style: TextStyle(color: Color(0xff8994a2), fontSize: 13),
                     ),
                   ),
-
                   const SizedBox(width: 10),
-
-                  // UPDATE
                   ElevatedButton.icon(
                     onPressed: isUpdating ? null : _updateOrganization,
                     icon: isUpdating
@@ -469,32 +384,25 @@ class _OrgCRUDUpdateState extends State<OrgCRUDUpdate> {
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: const TextStyle(color: Color(0xff8994a2), fontSize: 13),
-
-        prefixIcon: Icon(icon, color: Color(0xff8994a2), size: 20),
-
+        prefixIcon: Icon(icon, color: const Color(0xff8994a2), size: 20),
         filled: true,
         fillColor: const Color(0xff141e2a),
-
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 17,
         ),
-
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide.none,
         ),
-
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: Colors.white.withOpacity(0.04)),
         ),
-
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: Color(0xff078df5)),
         ),
-
         disabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: Colors.white.withOpacity(0.04)),
@@ -504,91 +412,59 @@ class _OrgCRUDUpdateState extends State<OrgCRUDUpdate> {
   }
 
   // ============================================================
-  // STATUS DROPDOWN
+  // STATUS TOGGLE
   // ============================================================
 
-  Widget _buildStatusDropdown() {
-    return DropdownButtonFormField<String>(
-      value: selectedStatus,
-
-      isExpanded: true,
-
-      dropdownColor: const Color(0xff18222e),
-
-      icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xff8994a2)),
-
-      style: const TextStyle(color: Colors.white, fontSize: 13),
-
-      decoration: InputDecoration(
-        prefixIcon: const Icon(
-          Icons.toggle_on_outlined,
-          color: Color(0xff8994a2),
-          size: 21,
-        ),
-
-        labelText: 'Status',
-
-        labelStyle: const TextStyle(color: Color(0xff8994a2), fontSize: 11),
-
-        filled: true,
-        fillColor: const Color(0xff141e2a),
-
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
-        ),
-
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide.none,
-        ),
-
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.04)),
-        ),
-
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xff078df5)),
-        ),
+  Widget _buildStatusToggle() {
+    return Container(
+      height: 52,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xff141e2a),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withOpacity(0.04)),
       ),
-
-      items: const [
-        DropdownMenuItem<String>(value: 'active', child: Text('Active')),
-        DropdownMenuItem<String>(value: 'inactive', child: Text('Inactive')),
-      ],
-
-      onChanged: isUpdating
-          ? null
-          : (String? value) {
-              if (value == null) return;
-
-              setState(() {
-                selectedStatus = value;
-              });
-            },
+      child: Row(
+        children: [
+          const Icon(
+            Icons.toggle_on_outlined,
+            color: Color(0xff8994a2),
+            size: 21,
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              'Status',
+              style: TextStyle(color: Color(0xff8994a2), fontSize: 13),
+            ),
+          ),
+          Switch(
+            value: isActive,
+            onChanged: isUpdating
+                ? null
+                : (value) {
+                    setState(() {
+                      isActive = value;
+                    });
+                  },
+            activeColor: const Color(0xff078df5),
+            activeTrackColor: const Color(0xff078df5).withOpacity(0.35),
+            inactiveThumbColor: const Color(0xff8994a2),
+            inactiveTrackColor: const Color(0xff303b48),
+          ),
+          const SizedBox(width: 5),
+          Text(
+            isActive ? 'Active' : 'Inactive',
+            style: TextStyle(
+              color: isActive
+                  ? const Color(0xff078df5)
+                  : const Color(0xff8994a2),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
     );
-  }
-
-  // ============================================================
-  // SNACKBAR
-  // ============================================================
-
-  void _showSnackBar(String message, {bool isError = false}) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(message, style: const TextStyle(fontSize: 11)),
-          backgroundColor: isError
-              ? Colors.red.shade700
-              : const Color(0xff202b39),
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 2),
-        ),
-      );
   }
 }

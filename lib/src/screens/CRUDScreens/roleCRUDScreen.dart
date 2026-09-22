@@ -308,7 +308,7 @@ class _RoleCRUDScreenState extends State<RoleCRUDScreen> {
       insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 25),
       child: Container(
         width: 720,
-        constraints: const BoxConstraints(maxWidth: 720, maxHeight: 700),
+        constraints: const BoxConstraints(maxWidth: 720, maxHeight: 400),
         decoration: BoxDecoration(
           color: const Color(0xff202b39),
           borderRadius: BorderRadius.circular(14),
@@ -385,8 +385,6 @@ class _RoleCRUDScreenState extends State<RoleCRUDScreen> {
               ),
             ),
 
-            Divider(height: 1, color: Colors.white.withOpacity(0.07)),
-
             Flexible(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(28, 24, 28, 20),
@@ -432,72 +430,71 @@ class _RoleCRUDScreenState extends State<RoleCRUDScreen> {
                       maxLines: 4,
                     ),
 
-                    Container(
-                      height: 64,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xff141d28),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.06),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.security_outlined,
-                            size: 18,
-                            color: Color(0xff8994a2),
-                          ),
+                    // Container(
+                    //   height: 64,
+                    //   margin: const EdgeInsets.only(bottom: 12),
+                    //   padding: const EdgeInsets.symmetric(horizontal: 14),
+                    //   decoration: BoxDecoration(
+                    //     color: const Color(0xff141d28),
+                    //     borderRadius: BorderRadius.circular(8),
+                    //     border: Border.all(
+                    //       color: Colors.white.withOpacity(0.06),
+                    //     ),
+                    //   ),
+                    //   child: Row(
+                    //     children: [
+                    //       const Icon(
+                    //         Icons.security_outlined,
+                    //         size: 18,
+                    //         color: Color(0xff8994a2),
+                    //       ),
 
-                          const SizedBox(width: 10),
+                    //       const SizedBox(width: 10),
 
-                          const Expanded(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'System Role',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
+                    //       const Expanded(
+                    //         child: Column(
+                    //           mainAxisAlignment: MainAxisAlignment.center,
+                    //           crossAxisAlignment: CrossAxisAlignment.start,
+                    //           children: [
+                    //             Text(
+                    //               'System Role',
+                    //               style: TextStyle(
+                    //                 color: Colors.white,
+                    //                 fontSize: 12,
+                    //                 fontWeight: FontWeight.w500,
+                    //               ),
+                    //             ),
 
-                                SizedBox(height: 2),
+                    //             SizedBox(height: 2),
 
-                                Text(
-                                  'Mark this role as a system role',
-                                  style: TextStyle(
-                                    color: Color(0xff697482),
-                                    fontSize: 9,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                    //             Text(
+                    //               'Mark this role as a system role',
+                    //               style: TextStyle(
+                    //                 color: Color(0xff697482),
+                    //                 fontSize: 9,
+                    //               ),
+                    //             ),
+                    //           ],
+                    //         ),
+                    //       ),
 
-                          Switch(
-                            value: isSystemRole,
-                            onChanged: isLoading ? null : onSystemRoleChanged,
-                            activeColor: Colors.white,
-                            activeTrackColor: const Color(0xff078df5),
-                            inactiveThumbColor: const Color(0xff8994a2),
-                            inactiveTrackColor: const Color(0xff2b3745),
-                          ),
-                        ],
-                      ),
-                    ),
+                    //       Switch(
+                    //         value: isSystemRole,
+                    //         onChanged: isLoading ? null : onSystemRoleChanged,
+                    //         activeColor: Colors.white,
+                    //         activeTrackColor: const Color(0xff078df5),
+                    //         inactiveThumbColor: const Color(0xff8994a2),
+                    //         inactiveTrackColor: const Color(0xff2b3745),
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
                   ],
                 ),
               ),
             ),
 
-            Divider(height: 1, color: Colors.white.withOpacity(0.07)),
-
+            // Divider(height: 1, color: Colors.white.withOpacity(0.07)),
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 15, 24, 15),
               child: Row(

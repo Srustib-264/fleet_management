@@ -35,7 +35,8 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
   int rowsPerPage = 10;
   int totalPages = 1;
   int totalCount = 0;
-
+  // String currentSort = 'full_name_desc';
+  String? currentSort;
   String? selectedRoleId;
   String? selectedFilterRoleId;
 
@@ -162,6 +163,7 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
       final result = await _userApiService.getUsers(
         userRole: roleId,
         searchText: searchText,
+        sort: currentSort,
         page: currentPage,
         sizePerPage: rowsPerPage,
         currentIndex: (currentPage - 1) * rowsPerPage,
@@ -1301,8 +1303,7 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
                       ),
                     ),
 
-                    Divider(height: 1, color: Colors.white.withOpacity(0.07)),
-
+                    // Divider(height: 1, color: Colors.white.withOpacity(0.07)),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(24, 15, 24, 15),
 
@@ -1488,7 +1489,6 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // LEFT SIDE
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1729,25 +1729,15 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
 
                       const SizedBox(width: 10),
 
-                      // SORT ICON
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: const Color(0xff202b39),
-                          borderRadius: BorderRadius.circular(7),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.06),
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.sort,
-                          size: 18,
+                      const Spacer(),
+                      const Text(
+                        'Page :',
+                        style: TextStyle(
                           color: Color(0xff8994a2),
+                          fontSize: 12,
                         ),
                       ),
-                      const Spacer(),
-
+                      const SizedBox(width: 10),
                       Container(
                         width: 70,
                         height: 36,
@@ -2017,8 +2007,42 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
                       columns: [
                         DataColumn(label: Text('EMPLOYEE CODE')),
 
-                        DataColumn(label: Text('NAME')),
+                        DataColumn(
+                          label: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('User Name'),
+                              const SizedBox(width: 8),
+                              InkWell(
+                                onTap: () async {
+                                  setState(() {
+                                    currentSort = currentSort == 'full_name_asc'
+                                        ? 'full_name_desc'
+                                        : 'full_name_asc';
 
+                                    currentPage = 1;
+                                  });
+
+                                  await _loadUsers();
+                                },
+                                borderRadius: BorderRadius.circular(7),
+                                child: Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xff202b39),
+                                    borderRadius: BorderRadius.circular(7),
+                                  ),
+                                  child: const Icon(
+                                    Icons.sort,
+                                    size: 18,
+                                    color: Color(0xff8994a2),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                         DataColumn(label: Text('EMAIL')),
 
                         DataColumn(label: Text('MOBILE')),
@@ -2358,123 +2382,18 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
       endPage = totalPages;
     }
 
-    return Container(
-      height: 58,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-
-      child: Row(
-        children: [
-          // ========================================
-          // LEFT ARROW
-          // ========================================
-          _buildPaginationArrow(
-            icon: Icons.chevron_left_rounded,
-            enabled: currentPage > 1,
-            onTap: () {
-              setState(() {
-                currentPage--;
-              });
-
-              _loadUsers(
-                roleId: selectedFilterRoleId,
-                searchText: _searchController.text.trim().isEmpty
-                    ? null
-                    : _searchController.text.trim(),
-              );
-            },
-          ),
-
-          const SizedBox(width: 6),
-
-          // ========================================
-          // PAGE NUMBERS
-          // ========================================
-          Row(
-            children: List.generate(endPage - startPage + 1, (index) {
-              final page = startPage + index;
-
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 3),
-                child: _buildPageButton(
-                  page: page,
-                  isSelected: page == currentPage,
-                ),
-              );
-            }),
-          ),
-
-          const SizedBox(width: 6),
-
-          // ========================================
-          // RIGHT ARROW
-          // ========================================
-          _buildPaginationArrow(
-            icon: Icons.chevron_right_rounded,
-            enabled: currentPage < totalPages,
-            onTap: () {
-              setState(() {
-                currentPage++;
-              });
-
-              _loadUsers(
-                roleId: selectedFilterRoleId,
-                searchText: _searchController.text.trim().isEmpty
-                    ? null
-                    : _searchController.text.trim(),
-              );
-            },
-          ),
-
-          const Spacer(),
-
-          // ========================================
-          // GO TO PAGE
-          // ========================================
-          SizedBox(
-            width: 88,
-            height: 36,
-            child: TextField(
-              keyboardType: TextInputType.number,
-              style: const TextStyle(color: Colors.white, fontSize: 11),
-              decoration: InputDecoration(
-                hintText: 'Page',
-                hintStyle: const TextStyle(
-                  color: Color(0xff697482),
-                  fontSize: 11,
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 11,
-                  vertical: 8,
-                ),
-                filled: true,
-                fillColor: const Color(0xff202b39),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(7),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(7),
-                  borderSide: BorderSide(color: Colors.white.withOpacity(0.08)),
-                ),
-                focusedBorder: const OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(7)),
-                  borderSide: BorderSide(color: Color(0xff078df5)),
-                ),
-              ),
-              onSubmitted: (value) {
-                final page = int.tryParse(value);
-
-                if (page == null) {
-                  return;
-                }
-
-                if (page < 1 || page > totalPages) {
-                  _showError('Please enter a page between 1 and $totalPages');
-                  return;
-                }
-
+    return SizedBox(
+      height: 48,
+      child: Center(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildPaginationArrow(
+              icon: Icons.chevron_left_rounded,
+              enabled: currentPage > 1,
+              onTap: () {
                 setState(() {
-                  currentPage = page;
+                  currentPage--;
                 });
 
                 _loadUsers(
@@ -2485,22 +2404,121 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
                 );
               },
             ),
-          ),
 
-          const SizedBox(width: 14),
+            const SizedBox(width: 6),
 
-          // ========================================
-          // PAGE INFORMATION
-          // ========================================
-          Text(
-            'Page $currentPage of $totalPages · $totalCount items',
-            style: const TextStyle(
-              color: Color(0xff8994a2),
-              fontSize: 11,
-              fontWeight: FontWeight.w400,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(endPage - startPage + 1, (index) {
+                final page = startPage + index;
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: _buildPageButton(
+                    page: page,
+                    isSelected: page == currentPage,
+                  ),
+                );
+              }),
             ),
-          ),
-        ],
+
+            const SizedBox(width: 6),
+
+            _buildPaginationArrow(
+              icon: Icons.chevron_right_rounded,
+              enabled: currentPage < totalPages,
+              onTap: () {
+                setState(() {
+                  currentPage++;
+                });
+
+                _loadUsers(
+                  roleId: selectedFilterRoleId,
+                  searchText: _searchController.text.trim().isEmpty
+                      ? null
+                      : _searchController.text.trim(),
+                );
+              },
+            ),
+
+            const SizedBox(width: 20),
+
+            SizedBox(
+              width: 88,
+              height: 26,
+              child: TextField(
+                keyboardType: TextInputType.number,
+                style: const TextStyle(color: Colors.white, fontSize: 11),
+                decoration: InputDecoration(
+                  hintText: 'Page',
+                  hintStyle: const TextStyle(
+                    color: Color(0xff697482),
+                    fontSize: 11,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 11,
+                    vertical: 8,
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xff202b39),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(7),
+                    borderSide: BorderSide(
+                      color: Colors.white.withOpacity(0.08),
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(7),
+                    borderSide: BorderSide(
+                      color: Colors.white.withOpacity(0.08),
+                    ),
+                  ),
+                  focusedBorder: const OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(7)),
+                    borderSide: BorderSide(color: Color(0xff078df5)),
+                  ),
+                ),
+                onSubmitted: (value) {
+                  final page = int.tryParse(value);
+
+                  if (page == null) {
+                    return;
+                  }
+
+                  if (page < 1 || page > totalPages) {
+                    _showError('Please enter a page between 1 and $totalPages');
+                    return;
+                  }
+
+                  setState(() {
+                    currentPage = page;
+                  });
+
+                  _loadUsers(
+                    roleId: selectedFilterRoleId,
+                    searchText: _searchController.text.trim().isEmpty
+                        ? null
+                        : _searchController.text.trim(),
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(width: 14),
+
+            // ========================================
+            // PAGE INFORMATION
+            // ========================================
+            Text(
+              'Page $currentPage of $totalPages · $totalCount items',
+              style: const TextStyle(
+                color: Color(0xff8994a2),
+                fontSize: 11,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2523,8 +2541,8 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
             },
       borderRadius: BorderRadius.circular(6),
       child: Container(
-        width: 36,
-        height: 36,
+        width: 20,
+        height: 20,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xff078df5) : const Color(0xff202b39),

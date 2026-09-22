@@ -7,10 +7,6 @@ import '../../models/roleCRUDModel.dart';
 import '../apiUrl.dart';
 
 class RoleCRUDAPIService {
-  // ============================================================
-  // GET ROLES
-  // ============================================================
-
   Future<RoleCRUDModel> getRoles() async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -24,9 +20,6 @@ class RoleCRUDAPIService {
       },
     );
 
-    print('GET ROLES STATUS: ${response.statusCode}');
-    print('GET ROLES RESPONSE: ${response.body}');
-
     if (response.statusCode == 200) {
       final jsonData = jsonDecode(response.body);
 
@@ -35,10 +28,6 @@ class RoleCRUDAPIService {
       throw Exception('Failed to load roles: ${response.statusCode}');
     }
   }
-
-  // ============================================================
-  // GET ROLE BY ID
-  // ============================================================
 
   Future<RoleData> getRoleById(String id) async {
     final prefs = await SharedPreferences.getInstance();
@@ -53,9 +42,6 @@ class RoleCRUDAPIService {
       },
     );
 
-    print('GET ROLE STATUS: ${response.statusCode}');
-    print('GET ROLE RESPONSE: ${response.body}');
-
     if (response.statusCode == 200) {
       final jsonData = jsonDecode(response.body);
 
@@ -64,10 +50,6 @@ class RoleCRUDAPIService {
       throw Exception('Failed to load role: ${response.statusCode}');
     }
   }
-
-  // ============================================================
-  // CREATE ROLE
-  // ============================================================
 
   Future<bool> createRole({
     required int roleCode,
@@ -105,10 +87,6 @@ class RoleCRUDAPIService {
     return response.statusCode == 200 || response.statusCode == 201;
   }
 
-  // ============================================================
-  // UPDATE ROLE
-  // ============================================================
-
   Future<bool> updateRole({
     required String id,
     required int roleCode,
@@ -145,10 +123,6 @@ class RoleCRUDAPIService {
 
     return response.statusCode == 200;
   }
-
-  // ============================================================
-  // DELETE ROLE
-  // ============================================================
 
   Future<bool> deleteRole(String id) async {
     final prefs = await SharedPreferences.getInstance();

@@ -11,23 +11,38 @@ class GroupApiService {
   // GET ALL GROUPS
   // ============================================================
 
-  Future<GroupCRUDModel> getGroups() async {
+  Future<GroupCRUDModel> getGroups({
+    String? searchText,
+    int page = 1,
+    int sizePerPage = 10,
+    int currentIndex = 0,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
 
     final token = prefs.getString('accessToken');
 
     try {
+      final Map<String, String> queryParams = {
+        'page': page.toString(),
+        'sizePerPage': sizePerPage.toString(),
+        'currentIndex': currentIndex.toString(),
+      };
+
+      if (searchText != null && searchText.trim().isNotEmpty) {
+        queryParams['searchText'] = searchText.trim();
+      }
+
+      final uri = Uri.parse(
+        BaseURLConfig.groupCRUDApiService,
+      ).replace(queryParameters: queryParams);
+
       final response = await http.get(
-        Uri.parse(BaseURLConfig.groupCRUDApiService),
+        uri,
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
       );
-
-      print('GET GROUPS STATUS: ${response.statusCode}');
-
-      print('GET GROUPS RESPONSE: ${response.body}');
 
       final Map<String, dynamic> responseData = response.body.isNotEmpty
           ? jsonDecode(response.body)
@@ -42,10 +57,6 @@ class GroupApiService {
       throw Exception('Error fetching groups: $e');
     }
   }
-
-  // ============================================================
-  // CREATE GROUP
-  // ============================================================
 
   Future<void> createGroup(Map<String, dynamic> groupData) async {
     final prefs = await SharedPreferences.getInstance();
@@ -62,10 +73,6 @@ class GroupApiService {
         body: jsonEncode(groupData),
       );
 
-      print('CREATE GROUP STATUS: ${response.statusCode}');
-
-      print('CREATE GROUP RESPONSE: ${response.body}');
-
       final Map<String, dynamic> responseData = response.body.isNotEmpty
           ? jsonDecode(response.body)
           : {};
@@ -73,10 +80,6 @@ class GroupApiService {
       if (response.statusCode == 200 || response.statusCode == 201) {
         return;
       }
-
-      // --------------------------------------------------------
-      // HANDLE VALIDATION ERRORS
-      // --------------------------------------------------------
 
       if (responseData['errors'] is List) {
         final errors = responseData['errors'] as List;
@@ -96,10 +99,6 @@ class GroupApiService {
     }
   }
 
-  // ============================================================
-  // UPDATE GROUP
-  // ============================================================
-
   Future<void> updateGroup(
     String groupId,
     Map<String, dynamic> groupData,
@@ -118,10 +117,6 @@ class GroupApiService {
         body: jsonEncode(groupData),
       );
 
-      print('UPDATE GROUP STATUS: ${response.statusCode}');
-
-      print('UPDATE GROUP RESPONSE: ${response.body}');
-
       final Map<String, dynamic> responseData = response.body.isNotEmpty
           ? jsonDecode(response.body)
           : {};
@@ -131,10 +126,6 @@ class GroupApiService {
           response.statusCode == 204) {
         return;
       }
-
-      // --------------------------------------------------------
-      // HANDLE VALIDATION ERRORS
-      // --------------------------------------------------------
 
       if (responseData['errors'] is List) {
         final errors = responseData['errors'] as List;
@@ -154,10 +145,6 @@ class GroupApiService {
     }
   }
 
-  // ============================================================
-  // DELETE GROUP
-  // ============================================================
-
   Future<void> deleteGroup(String groupId) async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -172,10 +159,6 @@ class GroupApiService {
         },
       );
 
-      print('DELETE GROUP STATUS: ${response.statusCode}');
-
-      print('DELETE GROUP RESPONSE: ${response.body}');
-
       final Map<String, dynamic> responseData = response.body.isNotEmpty
           ? jsonDecode(response.body)
           : {};
@@ -183,10 +166,6 @@ class GroupApiService {
       if (response.statusCode == 200 || response.statusCode == 204) {
         return;
       }
-
-      // --------------------------------------------------------
-      // HANDLE VALIDATION ERRORS
-      // --------------------------------------------------------
 
       if (responseData['errors'] is List) {
         final errors = responseData['errors'] as List;

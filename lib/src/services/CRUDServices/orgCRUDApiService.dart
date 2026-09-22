@@ -7,14 +7,33 @@ import '../../models/orgCRUDModel.dart';
 import '../apiUrl.dart';
 
 class OrgApiService {
-  Future<OrgCRUDModel> getOrganizations() async {
+  Future<OrgCRUDModel> getOrganizations({
+    String? searchText,
+    int page = 1,
+    int sizePerPage = 10,
+    int currentIndex = 0,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
 
     final token = prefs.getString('accessToken');
 
     try {
+      final Map<String, String> queryParams = {
+        'page': page.toString(),
+        'sizePerPage': sizePerPage.toString(),
+        'currentIndex': currentIndex.toString(),
+      };
+
+      if (searchText != null && searchText.trim().isNotEmpty) {
+        queryParams['searchText'] = searchText.trim();
+      }
+
+      final uri = Uri.parse(
+        BaseURLConfig.orgCRUDApiService,
+      ).replace(queryParameters: queryParams);
+
       final response = await http.get(
-        Uri.parse(BaseURLConfig.orgCRUDApiService),
+        uri,
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -103,10 +122,6 @@ class OrgApiService {
       throw Exception('Error updating organization: $e');
     }
   }
-
-  // ============================================================
-  // DELETE ORGANIZATION
-  // ============================================================
 
   Future<void> deleteOrganization(String organizationId) async {
     final prefs = await SharedPreferences.getInstance();

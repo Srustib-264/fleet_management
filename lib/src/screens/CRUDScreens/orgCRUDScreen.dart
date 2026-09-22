@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 
 import '../../models/orgCRUDModel.dart';
@@ -16,9 +19,16 @@ class _OrgCRUDScreenState extends State<OrgCRUDScreen> {
 
   List<OrgData> organizations = [];
 
+  final TextEditingController _searchController = TextEditingController();
+  Timer? _searchDebounce;
+
+  int currentPage = 1;
+  int rowsPerPage = 10;
+  int totalPages = 1;
+  int totalCount = 0;
   bool isLoading = true;
   bool isDeleting = false;
-
+  // bool isActive = true;
   @override
   void initState() {
     super.initState();
@@ -29,18 +39,25 @@ class _OrgCRUDScreenState extends State<OrgCRUDScreen> {
   // GET ORGANIZATIONS
   // ============================================================
 
-  Future<void> _loadOrganizations() async {
+  Future<void> _loadOrganizations({String? searchText}) async {
     setState(() {
       isLoading = true;
     });
 
     try {
-      final response = await _orgApiService.getOrganizations();
+      final response = await _orgApiService.getOrganizations(
+        searchText: searchText,
+        page: currentPage,
+        sizePerPage: rowsPerPage,
+        currentIndex: (currentPage - 1) * rowsPerPage,
+      );
 
       if (!mounted) return;
 
       setState(() {
         organizations = response.data;
+        totalCount = response.pagination?.totalRecords ?? 0;
+        totalPages = response.pagination?.totalPages ?? 1;
         isLoading = false;
       });
     } catch (e) {
@@ -53,7 +70,6 @@ class _OrgCRUDScreenState extends State<OrgCRUDScreen> {
       _showSnackBar('Failed to load organizations', isError: true);
     }
   }
-
   // ============================================================
   // DELETE ORGANIZATION
   // ============================================================
@@ -146,9 +162,8 @@ class _OrgCRUDScreenState extends State<OrgCRUDScreen> {
     final phoneController = TextEditingController();
     final addressController = TextEditingController();
 
-    String selectedStatus = 'active';
+    bool isActive = true;
     bool isAdding = false;
-
     const Color dialogColor = Color(0xff202b39);
     const Color fieldColor = Color(0xff141d28);
     const Color primaryColor = Color(0xff078df5);
@@ -178,7 +193,7 @@ class _OrgCRUDScreenState extends State<OrgCRUDScreen> {
                 'email': emailController.text.trim(),
                 'phone': phoneController.text.trim(),
                 'address': addressController.text.trim(),
-                'status': selectedStatus,
+                'status': isActive ? 'active' : 'inactive',
               };
 
               try {
@@ -217,7 +232,7 @@ class _OrgCRUDScreenState extends State<OrgCRUDScreen> {
 
                 constraints: const BoxConstraints(
                   maxWidth: 650,
-                  maxHeight: 650,
+                  maxHeight: 550,
                 ),
 
                 decoration: BoxDecoration(
@@ -311,11 +326,6 @@ class _OrgCRUDScreenState extends State<OrgCRUDScreen> {
                       ),
                     ),
 
-                    Divider(height: 1, color: Colors.white.withOpacity(0.07)),
-
-                    // =====================================================
-                    // BODY
-                    // =====================================================
                     Expanded(
                       child: SingleChildScrollView(
                         padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
@@ -452,87 +462,15 @@ class _OrgCRUDScreenState extends State<OrgCRUDScreen> {
                                 ),
                               ],
                             ),
-
-                            // =================================================
-                            // STATUS
-                            // =================================================
-                            // _buildOrganizationSectionTitle(
-                            //   icon: Icons.settings_outlined,
-                            //   title: 'Organization Status',
-                            //   subtitle:
-                            //       'Choose the current organization status',
-                            // ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 4,
-                              ),
-
-                              decoration: BoxDecoration(
-                                color: fieldColor,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.06),
-                                ),
-                              ),
-
-                              child: DropdownButtonFormField<String>(
-                                value: selectedStatus,
-
-                                dropdownColor: dialogColor,
-
-                                icon: const Icon(
-                                  Icons.keyboard_arrow_down_rounded,
-                                  color: secondaryTextColor,
-                                  size: 20,
-                                ),
-
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12.5,
-                                ),
-
-                                decoration: const InputDecoration(
-                                  labelText: 'Status',
-
-                                  labelStyle: TextStyle(
-                                    color: secondaryTextColor,
-                                    fontSize: 12,
-                                  ),
-
-                                  border: InputBorder.none,
-
-                                  prefixIcon: Icon(
-                                    Icons.toggle_on_outlined,
-                                    color: secondaryTextColor,
-                                    size: 18,
-                                  ),
-                                ),
-
-                                items: const [
-                                  DropdownMenuItem(
-                                    value: 'active',
-                                    child: Text('Active'),
-                                  ),
-
-                                  DropdownMenuItem(
-                                    value: 'inactive',
-                                    child: Text('Inactive'),
-                                  ),
-                                ],
-
-                                onChanged: isAdding
-                                    ? null
-                                    : (value) {
-                                        if (value == null) {
-                                          return;
-                                        }
-
-                                        setDialogState(() {
-                                          selectedStatus = value;
-                                        });
-                                      },
-                              ),
+                            _buildStatusToggle(
+                              value: isActive,
+                              onChanged: isAdding
+                                  ? null
+                                  : (value) {
+                                      setDialogState(() {
+                                        isActive = value;
+                                      });
+                                    },
                             ),
                           ],
                         ),
@@ -661,12 +599,9 @@ class _OrgCRUDScreenState extends State<OrgCRUDScreen> {
       text: organization.address ?? '',
     );
 
-    String selectedStatus = organization.status?.isNotEmpty == true
-        ? organization.status!
-        : 'active';
+    bool isActive = organization.status?.toLowerCase() == 'active';
 
     bool isUpdating = false;
-
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -731,13 +666,15 @@ class _OrgCRUDScreenState extends State<OrgCRUDScreen> {
                         maxLines: 2,
                       ),
 
-                      _buildStatusDropdown(
-                        value: selectedStatus,
-                        onChanged: (value) {
-                          setDialogState(() {
-                            selectedStatus = value!;
-                          });
-                        },
+                      _buildStatusToggle(
+                        value: isActive,
+                        onChanged: isUpdating
+                            ? null
+                            : (value) {
+                                setDialogState(() {
+                                  isActive = value;
+                                });
+                              },
                       ),
                     ],
                   ),
@@ -800,7 +737,7 @@ class _OrgCRUDScreenState extends State<OrgCRUDScreen> {
 
                             'address': addressController.text.trim(),
 
-                            'status': selectedStatus,
+                            'status': isActive ? 'active' : 'inactive',
                           };
 
                           try {
@@ -1006,9 +943,6 @@ class _OrgCRUDScreenState extends State<OrgCRUDScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ========================================================
-        // HEADER
-        // ========================================================
         Row(
           children: [
             const Expanded(
@@ -1033,7 +967,164 @@ class _OrgCRUDScreenState extends State<OrgCRUDScreen> {
                 ],
               ),
             ),
+          ],
+        ),
 
+        const SizedBox(height: 25),
+        Row(
+          children: [
+            SizedBox(
+              width: 260,
+              height: 38,
+              child: TextField(
+                controller: _searchController,
+                style: const TextStyle(color: Colors.white, fontSize: 11),
+                onChanged: (value) {
+                  _searchDebounce?.cancel();
+
+                  _searchDebounce = Timer(
+                    const Duration(milliseconds: 500),
+                    () {
+                      currentPage = 1;
+
+                      final searchText = value.trim();
+
+                      _loadOrganizations(
+                        searchText: searchText.isEmpty ? null : searchText,
+                      );
+                    },
+                  );
+                },
+                decoration: InputDecoration(
+                  hintText: 'Search organizations...',
+                  hintStyle: const TextStyle(
+                    color: Color(0xff697482),
+                    fontSize: 11,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    size: 17,
+                    color: Color(0xff8994a2),
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xff202b39),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(7),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(7),
+                    borderSide: BorderSide(
+                      color: Colors.white.withOpacity(0.06),
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(7),
+                    borderSide: const BorderSide(color: Color(0xff078df5)),
+                  ),
+                ),
+              ),
+            ),
+
+            const Spacer(),
+
+            const SizedBox(width: 8),
+            const Text(
+              'Page :',
+              style: TextStyle(color: Color(0xff8994a2), fontSize: 12),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              width: 70,
+              height: 36,
+              decoration: BoxDecoration(
+                color: const Color(0xff202b39),
+                borderRadius: BorderRadius.circular(7),
+                border: Border.all(color: Colors.white.withOpacity(0.06)),
+              ),
+              child: DropdownButton2<int>(
+                value: 10,
+                isExpanded: true,
+
+                buttonStyleData: ButtonStyleData(
+                  width: 70,
+                  height: 36,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xff202b39),
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                ),
+
+                iconStyleData: const IconStyleData(
+                  icon: Icon(
+                    Icons.keyboard_arrow_down,
+                    size: 17,
+                    color: Color(0xff8994a2),
+                  ),
+                ),
+
+                style: const TextStyle(color: Color(0xff8994a2), fontSize: 11),
+
+                underline: const SizedBox(),
+
+                // POPUP
+                dropdownStyleData: DropdownStyleData(
+                  width: 70,
+
+                  offset: const Offset(0, -3),
+
+                  // Fixed popup height
+                  maxHeight: 180,
+
+                  padding: EdgeInsets.zero,
+
+                  decoration: BoxDecoration(
+                    color: const Color(0xff202b39),
+                    borderRadius: BorderRadius.circular(7),
+                    border: Border.all(color: Colors.white.withOpacity(0.06)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.25),
+                        blurRadius: 12,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                ),
+
+                menuItemStyleData: const MenuItemStyleData(
+                  height: 40,
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                ),
+
+                items: const [
+                  DropdownMenuItem<int>(value: 10, child: Text('10')),
+                  DropdownMenuItem<int>(value: 25, child: Text('25')),
+                  DropdownMenuItem<int>(value: 50, child: Text('50')),
+                  DropdownMenuItem<int>(value: 100, child: Text('100')),
+                ],
+
+                onChanged: (value) async {
+                  if (value == null) return;
+
+                  setState(() {
+                    rowsPerPage = value;
+                    currentPage = 1;
+                  });
+
+                  await _loadOrganizations(
+                    searchText: _searchController.text.trim().isEmpty
+                        ? null
+                        : _searchController.text.trim(),
+                  );
+                },
+              ),
+            ),
             const SizedBox(width: 8),
 
             ElevatedButton.icon(
@@ -1058,8 +1149,7 @@ class _OrgCRUDScreenState extends State<OrgCRUDScreen> {
           ],
         ),
 
-        const SizedBox(height: 25),
-
+        const SizedBox(height: 12),
         // ========================================================
         // TABLE
         // ========================================================
@@ -1085,6 +1175,7 @@ class _OrgCRUDScreenState extends State<OrgCRUDScreen> {
                 : _buildOrganizationTable(),
           ),
         ),
+        if (!isLoading && organizations.isNotEmpty) _buildPaginationControls(),
       ],
     );
   }
@@ -1404,80 +1495,218 @@ class _OrgCRUDScreenState extends State<OrgCRUDScreen> {
       ),
     );
   }
+
   // ============================================================
   // ORGANIZATION ROW
   // ============================================================
+  Widget _buildPaginationControls() {
+    const int visiblePages = 5;
 
-  Widget _buildOrganizationRow(OrgData organization) {
-    return Container(
-      height: 58,
+    int startPage = ((currentPage - 1) ~/ visiblePages) * visiblePages + 1;
 
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Colors.white.withOpacity(0.04)),
-        ),
-      ),
+    int endPage = startPage + visiblePages - 1;
 
-      child: Row(
-        children: [
-          _buildDataCell(organization.orgCode?.toString() ?? '-', width: 100),
+    if (endPage > totalPages) {
+      endPage = totalPages;
+    }
 
-          _buildDataCell(organization.orgName ?? '-', width: 180, bold: true),
+    return SizedBox(
+      height: 48,
+      child: Center(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildPaginationArrow(
+              icon: Icons.chevron_left_rounded,
+              enabled: currentPage > 1,
+              onTap: () {
+                setState(() {
+                  currentPage--;
+                });
 
-          _buildDataCell(organization.contactPerson ?? '-', width: 170),
-
-          _buildDataCell(organization.email ?? '-', width: 200),
-
-          _buildDataCell(organization.phone ?? '-', width: 140),
-
-          _buildStatusCell(organization.status ?? '-', width: 100),
-
-          SizedBox(
-            width: 110,
-
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  tooltip: 'Edit',
-
-                  onPressed: () {
-                    _showEditOrganizationDialog(organization);
-                  },
-
-                  icon: const Icon(
-                    Icons.edit_outlined,
-                    size: 17,
-                    color: Color(0xff078df5),
-                  ),
-                ),
-
-                IconButton(
-                  tooltip: 'Delete',
-
-                  onPressed: isDeleting
+                _loadOrganizations(
+                  searchText: _searchController.text.trim().isEmpty
                       ? null
-                      : () {
-                          _deleteOrganization(organization);
-                        },
+                      : _searchController.text.trim(),
+                );
+              },
+            ),
 
-                  icon: const Icon(
-                    Icons.delete_outline,
-                    size: 17,
-                    color: Colors.redAccent,
+            const SizedBox(width: 6),
+
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(endPage - startPage + 1, (index) {
+                final page = startPage + index;
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: _buildPageButton(
+                    page: page,
+                    isSelected: page == currentPage,
+                  ),
+                );
+              }),
+            ),
+
+            const SizedBox(width: 6),
+
+            _buildPaginationArrow(
+              icon: Icons.chevron_right_rounded,
+              enabled: currentPage < totalPages,
+              onTap: () {
+                setState(() {
+                  currentPage++;
+                });
+
+                _loadOrganizations(
+                  searchText: _searchController.text.trim().isEmpty
+                      ? null
+                      : _searchController.text.trim(),
+                );
+              },
+            ),
+
+            const SizedBox(width: 20),
+
+            SizedBox(
+              width: 88,
+              height: 26,
+              child: TextField(
+                keyboardType: TextInputType.number,
+                style: const TextStyle(color: Colors.white, fontSize: 11),
+                decoration: InputDecoration(
+                  hintText: 'Page',
+                  hintStyle: const TextStyle(
+                    color: Color(0xff697482),
+                    fontSize: 11,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 11,
+                    vertical: 8,
+                  ),
+                  filled: true,
+                  fillColor: const Color(0xff202b39),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(7),
+                    borderSide: BorderSide(
+                      color: Colors.white.withOpacity(0.08),
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(7),
+                    borderSide: BorderSide(
+                      color: Colors.white.withOpacity(0.08),
+                    ),
+                  ),
+                  focusedBorder: const OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(7)),
+                    borderSide: BorderSide(color: Color(0xff078df5)),
                   ),
                 ),
-              ],
+                onSubmitted: (value) {
+                  final page = int.tryParse(value);
+
+                  if (page == null) {
+                    return;
+                  }
+
+                  if (page < 1 || page > totalPages) {
+                    return;
+                  }
+
+                  setState(() {
+                    currentPage = page;
+                  });
+
+                  _loadOrganizations(
+                    searchText: _searchController.text.trim().isEmpty
+                        ? null
+                        : _searchController.text.trim(),
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+
+            const SizedBox(width: 14),
+
+            // ========================================
+            // PAGE INFORMATION
+            // ========================================
+            Text(
+              'Page $currentPage of $totalPages · $totalCount items',
+              style: const TextStyle(
+                color: Color(0xff8994a2),
+                fontSize: 11,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // ============================================================
-  // EMPTY STATE
-  // ============================================================
+  Widget _buildPageButton({required int page, required bool isSelected}) {
+    return InkWell(
+      onTap: isSelected
+          ? null
+          : () async {
+              setState(() {
+                currentPage = page;
+              });
+
+              await _loadOrganizations(
+                searchText: _searchController.text.trim().isEmpty
+                    ? null
+                    : _searchController.text.trim(),
+              );
+            },
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        width: 20,
+        height: 20,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xff078df5) : const Color(0xff202b39),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xff078df5)
+                : Colors.white.withOpacity(0.06),
+          ),
+        ),
+        child: Text(
+          '$page',
+          style: TextStyle(
+            color: isSelected ? Colors.white : const Color(0xff8994a2),
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaginationArrow({
+    required IconData icon,
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: enabled ? onTap : null,
+      borderRadius: BorderRadius.circular(6),
+      child: SizedBox(
+        width: 32,
+        height: 38,
+        child: Icon(
+          icon,
+          size: 23,
+          color: enabled ? Colors.white : Colors.white.withOpacity(0.20),
+        ),
+      ),
+    );
+  }
 
   Widget _buildEmptyState() {
     return Center(
@@ -1600,10 +1829,6 @@ class _OrgCRUDScreenState extends State<OrgCRUDScreen> {
     );
   }
 
-  // ============================================================
-  // STATUS CELL
-  // ============================================================
-
   Widget _buildStatusCell(String status, {required double width}) {
     final bool active = status.toLowerCase() == 'active';
 
@@ -1694,68 +1919,55 @@ class _OrgCRUDScreenState extends State<OrgCRUDScreen> {
     );
   }
 
-  // ============================================================
-  // STATUS DROPDOWN
-  // ============================================================
-
-  Widget _buildStatusDropdown({
-    required String value,
-    required ValueChanged<String?> onChanged,
+  Widget _buildStatusToggle({
+    required bool value,
+    required ValueChanged<bool>? onChanged,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-
-      child: DropdownButtonFormField<String>(
-        value: value,
-
-        dropdownColor: const Color(0xff18222e),
-
-        style: const TextStyle(color: Colors.white, fontSize: 12),
-
-        decoration: InputDecoration(
-          labelText: 'Status',
-
-          labelStyle: const TextStyle(color: Color(0xff8994a2), fontSize: 11),
-
-          filled: true,
-
-          fillColor: const Color(0xff18222e),
-
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 13,
-            vertical: 12,
-          ),
-
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(7),
-            borderSide: BorderSide.none,
-          ),
-
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(7),
-
-            borderSide: BorderSide(color: Colors.white.withOpacity(0.06)),
-          ),
-
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(7),
-
-            borderSide: const BorderSide(color: Color(0xff078df5)),
-          ),
+      child: Container(
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 13),
+        decoration: BoxDecoration(
+          color: const Color(0xff18222e),
+          borderRadius: BorderRadius.circular(7),
+          border: Border.all(color: Colors.white.withOpacity(0.06)),
         ),
+        child: Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Status',
+                style: TextStyle(color: Color(0xff8994a2), fontSize: 11),
+              ),
+            ),
 
-        items: const [
-          DropdownMenuItem(value: 'active', child: Text('Active')),
+            Switch(
+              value: value,
+              onChanged: onChanged,
+              activeColor: const Color(0xff078df5),
+              activeTrackColor: const Color(0xff078df5).withOpacity(0.35),
+              inactiveThumbColor: const Color(0xff8994a2),
+              inactiveTrackColor: const Color(0xff303b48),
+            ),
 
-          DropdownMenuItem(value: 'inactive', child: Text('Inactive')),
-        ],
+            const SizedBox(width: 4),
 
-        onChanged: onChanged,
+            Text(
+              value ? 'Active' : 'Inactive',
+              style: TextStyle(
+                color: value
+                    ? const Color(0xff078df5)
+                    : const Color(0xff8994a2),
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
-  }
-
-  // ============================================================
+  } // ============================================================
   // SNACKBAR
   // ============================================================
 
