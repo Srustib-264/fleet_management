@@ -41,7 +41,6 @@ class AppRouter {
         },
 
         routes: [
-          // DEFAULT PAGE AFTER FLEET SELECTION
           GoRoute(
             path: '/dashboard',
             name: 'dashboard',
@@ -91,6 +90,20 @@ class AppRouter {
             name: 'settingsRoles',
             builder: (context, state) {
               return const SettingsScreen(initialTab: 'roles');
+            },
+          ),
+          GoRoute(
+            path: '/settings/assetTypes',
+            name: 'assetTypes',
+            builder: (context, state) {
+              return const SettingsScreen(initialTab: 'assetTypes');
+            },
+          ),
+          GoRoute(
+            path: '/settings/assets',
+            name: 'assets',
+            builder: (context, state) {
+              return const SettingsScreen(initialTab: 'assets');
             },
           ),
         ],

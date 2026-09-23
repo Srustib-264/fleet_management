@@ -70,8 +70,6 @@ class RoleCRUDAPIService {
       'is_system_role': isSystemRole,
     };
 
-    print('CREATE ROLE REQUEST: $body');
-
     final response = await http.post(
       Uri.parse(BaseURLConfig.rolesApiURL),
       headers: {
@@ -80,9 +78,6 @@ class RoleCRUDAPIService {
       },
       body: jsonEncode(body),
     );
-
-    print('CREATE ROLE STATUS: ${response.statusCode}');
-    print('CREATE ROLE RESPONSE: ${response.body}');
 
     return response.statusCode == 200 || response.statusCode == 201;
   }
@@ -107,8 +102,6 @@ class RoleCRUDAPIService {
       'is_system_role': isSystemRole,
     };
 
-    print('UPDATE ROLE REQUEST: $body');
-
     final response = await http.put(
       Uri.parse('${BaseURLConfig.rolesApiURL}/$id'),
       headers: {
@@ -117,9 +110,6 @@ class RoleCRUDAPIService {
       },
       body: jsonEncode(body),
     );
-
-    print('UPDATE ROLE STATUS: ${response.statusCode}');
-    print('UPDATE ROLE RESPONSE: ${response.body}');
 
     return response.statusCode == 200;
   }
@@ -136,9 +126,6 @@ class RoleCRUDAPIService {
         'Authorization': 'Bearer $token',
       },
     );
-
-    print('DELETE ROLE STATUS: ${response.statusCode}');
-    print('DELETE ROLE RESPONSE: ${response.body}');
 
     return response.statusCode == 200 || response.statusCode == 204;
   }

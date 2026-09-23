@@ -1,8 +1,11 @@
+import 'package:fleet_management/src/models/assetsCRUDModel.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'CRUDScreens/goupCRUDScreen.dart';
+import 'CRUDScreens/assetTypeCRUDScreen.dart';
+import 'CRUDScreens/assetsCRUDScreen.dart';
+import 'CRUDScreens/groupCRUDScreen.dart';
 import 'CRUDScreens/orgCRUDScreen.dart';
 import 'CRUDScreens/roleCRUDScreen.dart';
 import 'CRUDScreens/userCRUDScreen.dart';
@@ -50,7 +53,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final bool isGroups = currentPath == '/settings/groups';
     final bool isOrgs = currentPath == '/settings/orgs';
     final bool isRoles = currentPath == '/settings/roles';
-    final bool isSuperAdmin = userRole?.trim().toLowerCase() == 'super admin';
+    final bool isAssetTypes = currentPath == '/settings/assetTypes';
+    final bool isAssets = currentPath == '/settings/assets';
+    // final bool isSuperAdmin = userRole?.trim().toLowerCase() == 'super admin';
     final bool isAdmin = userRole?.trim().toLowerCase() == 'admin';
 
     return Scaffold(
@@ -169,6 +174,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         context.go('/settings/groups');
                       },
                     ),
+                    _buildSettingsItem(
+                      title: 'Asset Types',
+                      icon: Icons.inventory_2_outlined,
+                      selected: isAssetTypes,
+
+                      onTap: () {
+                        context.go('/settings/assetTypes');
+                      },
+                    ),
+                    _buildSettingsItem(
+                      title: 'Asset',
+                      icon: Icons.inventory_2_outlined,
+                      selected: isAssets,
+
+                      onTap: () {
+                        context.go('/settings/assets');
+                      },
+                    ),
                     const Spacer(),
 
                     Padding(
@@ -214,6 +237,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       isGroups: isGroups,
                       isOrgs: isOrgs,
                       isRoles: isRoles,
+                      isAssetTypes: isAssetTypes,
+                      isAssets: isAssets,
                     ),
                   ),
                 ),
@@ -314,6 +339,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required bool isGroups,
     required bool isOrgs,
     required bool isRoles,
+    required bool isAssetTypes,
+    required bool isAssets,
   }) {
     if (isUsers) {
       return const UserCRUDScreen();
@@ -327,6 +354,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     if (isRoles) {
       return const RoleCRUDScreen();
+    }
+    if (isAssetTypes) {
+      return const AssetTypeScreen();
+    }
+    if (isAssets) {
+      return const AssetsScreen();
     }
     return const SizedBox();
   }

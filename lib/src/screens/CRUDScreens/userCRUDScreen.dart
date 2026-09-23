@@ -30,12 +30,11 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
   bool isLoading = true;
   String? errorMessage;
   List<Data> visibleUsers = [];
-  // String? selectedRoleId;
+
   int currentPage = 1;
   int rowsPerPage = 10;
   int totalPages = 1;
   int totalCount = 0;
-  // String currentSort = 'full_name_desc';
   String? currentSort;
   String? selectedRoleId;
   String? selectedFilterRoleId;
@@ -256,11 +255,7 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
             Future<void> pickDateOfBirth() async {
               final DateTime now = DateTime.now();
 
-              DateTime initialDate = DateTime(
-                now.year - 18,
-                now.month,
-                now.day,
-              );
+              DateTime initialDate = DateTime.now();
 
               if (dobController.text.trim().isNotEmpty) {
                 try {
@@ -276,35 +271,13 @@ class _UserCRUDScreenState extends State<UserCRUDScreen> {
                 helpText: 'Select Date of Birth',
                 cancelText: 'Cancel',
                 confirmText: 'Select',
-                builder: (context, child) {
-                  return Theme(
-                    data: Theme.of(context).copyWith(
-                      colorScheme: const ColorScheme.dark(
-                        primary: Color(0xff078df5),
-                        onPrimary: Colors.white,
-                        surface: Color(0xff202b39),
-                        onSurface: Colors.white,
-                      ),
-                      dialogTheme: const DialogThemeData(
-                        backgroundColor: Color(0xff202b39),
-                      ),
-                    ),
-                    child: child!,
-                  );
-                },
               );
 
               if (pickedDate != null) {
-                print(
-                  'CALENDAR SELECTED: ${pickedDate.year}-${pickedDate.month}-${pickedDate.day}',
-                );
-
                 final String formattedDate =
                     '${pickedDate.year.toString().padLeft(4, '0')}-'
                     '${pickedDate.month.toString().padLeft(2, '0')}-'
                     '${pickedDate.day.toString().padLeft(2, '0')}';
-
-                print('DATE BEING SET: $formattedDate');
 
                 setState(() {
                   dobController.text = formattedDate;
